@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Psalmist Medical Centre - Deployment Ready</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{font-family:'Inter',system-ui,sans-serif}
+@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.section{animation:fadeIn .2s ease}
+.drag-active{border-color:#0ea5e9!important;background:rgba(14,165,233,.1)!important}
+.dashboard-card{transition:transform .2s,box-shadow .2s;cursor:pointer}
+.dashboard-card:hover{transform:translateY(-4px);box-shadow:0 8px 30px rgba(14,165,233,.15)}
+.cart-item{background:#1e293b;border-radius:9999px;padding:6px 14px;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cart-qty-input{width:65px;text-align:center;background:#0f172a;border:1px solid #334155;border-radius:20px;padding:4px 8px;color:white}
+.upload-portal:hover{border-color:#0ea5e9;background:rgba(14,165,233,.05)}
+@media print{.no-print{display:none!important}.print-receipt{background:white;color:black;padding:20px;font-family:monospace}}
+input[type=number]::-webkit-inner-spin-button{opacity:.5}
+</style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+
+<!-- ===== LOGIN ===== -->
+<div id="loginScreen" class="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-950/98 backdrop-blur-sm">
+  <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-8 w-full max-w-md shadow-2xl mx-4">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 bg-sky-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-3 shadow-lg shadow-sky-500/30">Pharmacy</div>
+      <h2 class="text-2xl font-bold">Psalmist Medical Centre</h2>
+      <p class="text-zinc-400 text-sm mt-1">Pharmacy Management System</p>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs text-zinc-400 mb-1 ml-1">Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username"
+          class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white outline-none focus:border-sky-500 transition">
+      </div>
+      <div>
+        <label class="block text-xs text-zinc-400 mb-1 ml-1">Password</label>
+        <div class="relative">
+          <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password"
+            class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white outline-none focus:border-sky-500 transition pr-12">
+          <button id="togglePwd" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-sm">Show</button>
+        </div>
+      </div>
+      <label class="flex items-center gap-2 cursor-pointer ml-1">
+        <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded accent-sky-500">
+        <span class="text-sm text-zinc-400">Remember me</span>
+      </label>
+      <button id="doLoginBtn" class="w-full bg-sky-500 hover:bg-sky-600 active:bg-sky-700 py-3 rounded-2xl font-bold text-white transition shadow-lg shadow-sky-500/20">
+        Sign In
+      </button>
+      <div id="loginError" class="text-red-400 text-sm text-center bg-red-500/10 py-2 rounded-xl hidden">Invalid username or password</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="appContainer" class="hidden">
+  <!-- Navbar -->
+  <div class="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-50 shadow-md">
+    <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-sky-500 rounded-2xl flex items-center justify-center text-white text-xl shadow shadow-sky-500/30">Pharmacy</div>
+        <div>
+          <h1 class="text-xl font-bold leading-tight">Psalmist Medical Centre</h1>
+          <p class="text-xs text-zinc-400" id="roleDisplay"></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="bg-zinc-800 rounded-full px-4 py-1.5 text-sm flex items-center gap-2">
+          <span id="userNameDisplay" class="font-medium"></span>
+          <span id="userRoleBadge" class="text-sky-300 text-xs bg-sky-500/20 px-2 py-0.5 rounded-full"></span>
+        </div>
+        <button id="logoutBtn" class="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-4 py-2 rounded-full text-sm transition">Logout</button>
+      </div>
+    </div>
+    <div class="px-4 pb-3 flex flex-wrap gap-2 border-t border-zinc-800 pt-3 max-w-[1600px] mx-auto" id="navContainer"></div>
+  </div>
+
+  <div class="max-w-[1600px] mx-auto px-4 py-6">
+
+    <!-- DASHBOARD -->
+    <div id="dashboard-section" class="section">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div onclick="showSection('inventory')" class="dashboard-card bg-zinc-900 rounded-3xl p-5 border border-zinc-800">
+          <div class="flex justify-between items-start"><span class="text-zinc-400 text-sm">Total Drugs</span><span class="text-2xl">Medicine</span></div>
+          <p id="stat-total" class="text-4xl font-bold mt-2">0</p>
+          <p class="text-xs text-sky-400 mt-2">Click to view</p>
+        </div>
+        <div onclick="showSection('reports')" class="dashboard-card bg-zinc-900 rounded-3xl p-5 border border-zinc-800">
+          <div class="flex justify-between items-start"><span class="text-zinc-400 text-sm">Stock Value</span><span class="text-2xl">Money</span></div>
+          <p id="stat-value" class="text-4xl font-bold mt-2">GHS0</p>
+          <p class="text-xs text-sky-400 mt-2">Click for reports</p>
+        </div>
+        <div onclick="showSection('inventory')" class="dashboard-card bg-zinc-900 rounded-3xl p-5 border border-zinc-800">
+          <div class="flex justify-between items-start"><span class="text-zinc-400 text-sm">Low Stock</span><span class="text-2xl">Warning</span></div>
+          <p id="stat-low" class="text-4xl font-bold mt-2 text-amber-400">0</p>
+          <p class="text-xs text-amber-400 mt-2">Click to view</p>
+        </div>
+        <div onclick="showSection('reports')" class="dashboard-card bg-zinc-900 rounded-3xl p-5 border border-zinc-800">
+          <div class="flex justify-between items-start"><span class="text-zinc-400 text-sm">Units Sold</span><span class="text-2xl">Package</span></div>
+          <p id="stat-sold" class="text-4xl font-bold mt-2">0</p>
+          <p class="text-xs text-sky-400 mt-2">Click for reports</p>
+        </div>
+      </div>
+      <div class="grid lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-zinc-900/60 rounded-3xl p-5 border border-zinc-800/50">
+          <h3 class="font-semibold mb-3 text-center text-sm">Stock Value by Location</h3>
+          <canvas id="locationChart" height="200"></canvas>
+        </div>
+        <div class="bg-zinc-900/60 rounded-3xl p-5 border border-zinc-800/50">
+          <h3 class="font-semibold mb-3 text-center text-sm">Low Stock Items</h3>
+          <canvas id="lowStockChart" height="200"></canvas>
+        </div>
+      </div>
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-zinc-900/60 rounded-3xl p-5 border border-zinc-800/50">
+          <h3 class="font-semibold mb-3">Recent Activity</h3>
+          <div id="recent-log" class="text-sm text-zinc-300 space-y-1 max-h-44 overflow-y-auto pr-1"></div>
+        </div>
+        <div class="bg-zinc-900/60 rounded-3xl p-5 border border-zinc-800/50">
+          <h3 class="font-semibold mb-3">Top Selling Drugs</h3>
+          <div id="topSellingList" class="text-sm text-zinc-300 space-y-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="inventory-section" class="section hidden">
+      <div class="flex gap-3 mb-5 flex-wrap">
+        <button onclick="setPriceTier('general')" id="tierGeneral" class="px-5 py-2 rounded-full font-semibold transition bg-sky-500 text-white shadow shadow-sky-500/20">General Public</button>
+      </div>
+      <div class="flex flex-wrap justify-between gap-3 mb-5">
+        <div class="flex gap-2 flex-1 min-w-[200px] max-w-lg">
+          <div class="relative w-full">
+            <input type="text" id="searchInput" placeholder="Search drugs, strength, location..."
+              class="bg-white text-zinc-900 px-5 py-2.5 rounded-full w-full pr-10 outline-none shadow-sm">
+            <div id="searchClearIcon" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 cursor-pointer hidden font-bold text-lg leading-none">X</div>
+          </div>
+          <button id="clearSearchBtn" class="border border-zinc-600 px-4 rounded-full hover:bg-zinc-800 transition text-sm whitespace-nowrap">Clear</button>
+        </div>
+        <select id="sortSelect" class="bg-zinc-800 rounded-full px-4 py-2.5 text-sm border border-zinc-700 outline-none">
+          <option value="name">Sort: Name A-Z</option>
+          <option value="stock-asc">Stock: Low to High</option>
+          <option value="price-asc">Price: Low to High</option>
+        </select>
+      </div>
+
+      <!-- Cart -->
+      <div class="bg-zinc-800/60 rounded-2xl p-5 mb-5 border border-zinc-700/50">
+        <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+          <h3 class="font-semibold flex items-center gap-2">Sales Cart
+            <span class="text-xs bg-sky-500/30 px-2 py-0.5 rounded-full" id="cartPriceLabel">General Public</span>
+          </h3>
+          <div class="text-sm text-zinc-300">
+            <span id="cartTotalItems">0</span> items | Total:
+            <span id="cartTotalAmount" class="font-bold text-emerald-400 text-base">GHS0.00</span>
+          </div>
+        </div>
+        <div id="selectedDrugsContainer" class="flex flex-wrap gap-2 min-h-[60px] mb-4 items-start content-start"></div>
+        <div class="flex gap-3 flex-wrap">
+          <button id="processMultiSaleBtn" class="bg-red-500 hover:bg-red-600 px-7 py-2.5 rounded-full font-semibold text-white transition shadow shadow-red-500/20">Process Sale</button>
+          <button id="clearCartBtn" class="border border-zinc-500 px-5 py-2.5 rounded-full hover:bg-zinc-700 transition text-sm">Clear Cart</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white/5 rounded-3xl overflow-x-auto border border-white/5">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/10 text-zinc-400 text-xs uppercase tracking-wide">
+              <th class="p-4 text-left">Drug</th>
+              <th class="p-4 text-left">Strength</th>
+              <th class="p-4 text-right" id="priceHeader">Price (GHS)</th>
+              <th class="p-4 text-center">Stock</th>
+              <th class="p-4 text-center">Min</th>
+              <th class="p-4 text-left">Location</th>
+              <th class="p-4 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-tbody"></tbody>
+        </table>
+      </div>
+      <div id="searchResultCount" class="text-xs text-zinc-500 mt-2 text-right"></div>
+    </div>
+
+    <!-- UPLOADS -->
+    <div id="uploads-section" class="section hidden">
+      <div class="grid lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-zinc-900 rounded-3xl p-6 border-2 border-dashed border-sky-500/30 upload-portal transition-all">
+          <h2 class="text-xl font-bold mb-1 flex items-center gap-2">General Public
+            <span class="text-xs bg-sky-500/20 px-3 py-1 rounded-full">CSV / Excel</span>
+          </h2>
+          <p class="text-zinc-400 text-xs mb-4">Columns: Name, Strength, Cost, Price, Stock, MinBal, Location, WhenTaken</p>
+          <div id="generalUploadZone" class="border-2 border-dashed border-zinc-600 rounded-2xl p-6 text-center cursor-pointer hover:border-sky-500 transition">
+            <div class="text-4xl mb-2">File</div>
+            <p class="text-zinc-300 text-sm">Drag & drop or click to browse</p>
+            <input type="file" id="generalFileInput" accept=".csv,.xlsx,.xls" class="hidden">
+            <button id="generalBrowseBtn" class="mt-3 bg-sky-500/20 hover:bg-sky-500/30 px-5 py-1.5 rounded-full text-sm transition">Browse Files</button>
+          </div>
+          <div id="generalPreview" class="mt-3 hidden">
+            <div id="generalPreviewTable" class="max-h-32 overflow-auto bg-zinc-800/50 p-3 rounded-xl text-xs"></div>
+            <div class="flex gap-2 mt-2">
+              <button id="generalConfirmBtn" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-1.5 rounded-full text-sm text-white">Import</button>
+              <button id="generalCancelBtn" class="border border-zinc-500 px-4 py-1.5 rounded-full text-sm">Cancel</button>
+            </div>
+          </div>
+          <div id="generalResult" class="mt-2 text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD/EDIT DRUG -->
+    <div id="add-section" class="section hidden">
+      <div class="max-w-3xl mx-auto bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+        <h2 class="text-2xl font-bold mb-6" id="formTitle">Add New Drug</h2>
+        <form id="drugForm" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <input type="hidden" id="editId">
+          <div><label class="block text-xs mb-1 text-zinc-400">Drug Name *</label><input id="drugName" required placeholder="e.g. Paracetamol" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div><label class="block text-xs mb-1 text-zinc-400">Strength</label><input id="strength" placeholder="e.g. 500MG" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div><label class="block text-xs mb-1 text-zinc-400">Cost Price (GHS)</label><input id="cost" type="number" step="0.01" min="0" placeholder="0.00" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div><label class="block text-xs mb-1 text-zinc-400">General Selling Price (GHS)</label><input id="generalPrice" type="number" step="0.01" min="0" placeholder="0.00" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div><label class="block text-xs mb-1 text-zinc-400">Stock Quantity</label><input id="stock" type="number" min="0" placeholder="0" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div><label class="block text-xs mb-1 text-zinc-400">Minimum Balance</label><input id="minBal" type="number" value="10" min="0" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div><label class="block text-xs mb-1 text-zinc-400">Storage Location</label><input id="location" placeholder="e.g. Shelf A3" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div class="md:col-span-2"><label class="block text-xs mb-1 text-zinc-400">When Taken</label><input id="whenTaken" placeholder="e.g. After meals, Morning" class="w-full bg-white text-zinc-900 rounded-2xl px-4 py-3 outline-none focus:ring-2 ring-sky-400"></div>
+          <div class="md:col-span-2 flex gap-4">
+            <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 font-bold py-3 rounded-2xl flex-1 text-white transition shadow shadow-emerald-500/20">Save Drug</button>
+            <button type="button" id="cancelFormBtn" class="border border-zinc-500 hover:bg-zinc-800 rounded-2xl flex-1 transition">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="reports-section" class="section hidden">
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-zinc-900 p-6 rounded-3xl border border-zinc-800">
+          <h3 class="font-bold text-lg mb-4">Low Stock Alert</h3>
+          <div id="lowStockList" class="text-sm space-y-2"></div>
+        </div>
+        <div class="bg-zinc-900 p-6 rounded-3xl border border-zinc-800">
+          <h3 class="font-bold text-lg mb-4">Stock Value by Location</h3>
+          <div id="locationValue" class="text-sm space-y-2"></div>
+          <button id="exportReportBtn" class="mt-6 w-full bg-white hover:bg-zinc-100 text-zinc-900 font-bold py-3 rounded-2xl transition">Export Full Inventory CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin-section" class="section hidden">
+      <div class="space-y-6">
+        <div class="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+          <h2 class="text-2xl font-bold mb-6">User Management</h2>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+            <input type="text" id="newUsername" placeholder="Username" class="bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-2.5 text-white outline-none focus:border-sky-500 transition">
+            <select id="newRole" class="bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-2.5 text-white outline-none">
+              <option value="pharmacist">Pharmacist</option>
+              <option value="accountant">Accountant</option>
+              <option value="doctor">Doctor</option>
+            </select>
+            <input type="password" id="newPassword" placeholder="Password" class="bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-2.5 text-white outline-none focus:border-sky-500 transition">
+            <button id="addUserBtn" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2.5 rounded-2xl text-white font-semibold transition shadow shadow-emerald-500/20">Add User</button>
+          </div>
+          <div id="userListContainer" class="space-y-2"></div>
+        </div>
+
+        <div class="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+          <h2 class="text-2xl font-bold mb-6">Petroleum Commission Price Management</h2>
+          <div class="grid lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-zinc-800 rounded-3xl p-6 border-2 border-dashed border-amber-500/30 upload-portal transition-all">
+              <h3 class="text-lg font-bold mb-1 flex items-center gap-2">Petroleum Price Update
+                <span class="text-xs bg-amber-500/20 px-3 py-1 rounded-full">CSV / Excel</span>
+              </h3>
+              <p class="text-zinc-400 text-xs mb-4">Columns: Drug Name, Petroleum Price (updates existing drugs only)</p>
+              <div id="petrolUploadZone" class="border-2 border-dashed border-zinc-600 rounded-2xl p-6 text-center cursor-pointer hover:border-amber-500 transition">
+                <div class="text-4xl mb-2">File</div>
+                <p class="text-zinc-300 text-sm">Drag & drop or click to browse</p>
+                <input type="file" id="petrolFileInput" accept=".csv,.xlsx,.xls" class="hidden">
+                <button id="petrolBrowseBtn" class="mt-3 bg-amber-500/20 hover:bg-amber-500/30 px-5 py-1.5 rounded-full text-sm transition">Browse Files</button>
+              </div>
+              <div id="petrolPreview" class="mt-3 hidden">
+                <div id="petrolPreviewTable" class="max-h-32 overflow-auto bg-zinc-800/50 p-3 rounded-xl text-xs"></div>
+                <div class="flex gap-2 mt-2">
+                  <button id="petrolConfirmBtn" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-1.5 rounded-full text-sm text-white">Import Prices</button>
+                  <button id="petrolCancelBtn" class="border border-zinc-500 px-4 py-1.5 rounded-full text-sm">Cancel</button>
+                </div>
+              </div>
+              <div id="petrolResult" class="mt-2 text-sm"></div>
+            </div>
+
+            <div class="bg-zinc-800 rounded-3xl p-6 border border-zinc-700">
+              <h3 class="text-lg font-bold mb-4">Current Petroleum Prices</h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-white/10 text-zinc-400 text-xs uppercase">
+                      <th class="p-3 text-left">Drug</th>
+                      <th class="p-3 text-left">Strength</th>
+                      <th class="p-3 text-right">General Price</th>
+                      <th class="p-3 text-right">Petroleum Price</th>
+                      <th class="p-3 text-center w-28">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="petroleumPriceTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900 rounded-3xl p-8 border-2 border-dashed border-sky-500/30">
+          <h2 class="text-2xl font-bold mb-2">Bulk Import (Full Drug Data)</h2>
+          <p class="text-zinc-400 text-sm mb-4">Columns: Name, Strength, Cost, GeneralPrice, PetroleumPrice, Stock, MinBal, Location, WhenTaken</p>
+          <div id="uploadZone" class="border-2 border-dashed border-zinc-600 rounded-3xl p-6 text-center cursor-pointer hover:border-sky-500 transition">
+            <div class="text-4xl mb-2">File</div>
+            <p class="text-zinc-300">Drag & drop CSV/Excel here</p>
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" class="hidden">
+            <button id="browseBtn" class="mt-2 bg-sky-500/20 hover:bg-sky-500/30 px-5 py-1.5 rounded-full text-sm transition">Browse</button>
+          </div>
+          <div id="uploadPreview" class="mt-3 hidden">
+            <div id="previewTable" class="max-h-32 overflow-auto bg-zinc-800/50 p-3 rounded-xl text-xs"></div>
+            <div class="flex gap-2 mt-2">
+              <button id="confirmUploadBtn" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-1.5 rounded-full text-sm text-white">Import</button>
+              <button id="cancelUploadBtn" class="border border-zinc-500 px-4 py-1.5 rounded-full text-sm">Cancel</button>
+            </div>
+          </div>
+          <div id="uploadResult" class="mt-2 text-sm"></div>
+        </div>
+
+        <div class="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+          <h2 class="text-2xl font-bold mb-4">Reset Data</h2>
+          <div class="flex gap-3">
+            <button id="resetDrugsButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
+              Reset Drugs
+            </button>
+            <button id="resetUsersButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
+              Reset Users
+            </button>
+            <button id="resetActivityButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
+              Reset Activity Log
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RESTOCK MODAL -->
+<div id="restockModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white text-zinc-900 rounded-3xl p-6 w-96 shadow-2xl mx-4">
+    <h3 id="restockDrugTitle" class="text-xl font-bold">Restock Drug</h3>
+    <p class="text-zinc-500 text-sm mt-1 mb-4">Enter quantity to add to current stock</p>
+    <input type="number" id="restockQtyInput" value="10" min="1" class="w-full border border-zinc-300 p-3 rounded-2xl text-center text-2xl outline-none focus:ring-2 ring-sky-400">
+    <div class="flex gap-3 mt-5">
+      <button id="confirmRestockBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 py-3 rounded-2xl font-bold transition">Add Stock</button>
+      <button id="closeRestockModal" class="border border-zinc-300 hover:bg-zinc-100 flex-1 py-3 rounded-2xl transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div id="receiptModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[200] hidden">
+  <div class="bg-white text-black rounded-2xl max-w-md w-full mx-4 overflow-hidden shadow-2xl">
+    <div id="receiptContent" class="p-6 font-mono text-sm print-receipt max-h-[70vh] overflow-y-auto"></div>
+    <div class="flex gap-3 p-4 border-t border-gray-200 no-print">
+      <button onclick="window.print()" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white py-2.5 rounded-xl font-semibold transition">Print</button>
+      <button onclick="closeReceipt()" class="flex-1 border border-gray-300 hover:bg-gray-50 py-2.5 rounded-xl transition">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="psalmist-script.js"></script>
+</body>
+</html>
