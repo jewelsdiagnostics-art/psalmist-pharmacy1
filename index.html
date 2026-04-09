@@ -188,7 +188,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
       <div id="searchResultCount" class="text-xs text-zinc-500 mt-2 text-right"></div>
     </div>
 
-    <!-- UPLOADS -->
+    <!-- UPLOADS (non-admin: only file import, no price management table) -->
     <div id="uploads-section" class="section hidden">
       <div class="grid lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-zinc-900 rounded-3xl p-6 border-2 border-dashed border-sky-500/30 upload-portal transition-all">
@@ -202,23 +202,6 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
             <input type="file" id="generalFileInput" accept=".csv,.xlsx,.xls" class="hidden">
             <button id="generalBrowseBtn" class="mt-3 bg-sky-500/20 hover:bg-sky-500/30 px-5 py-1.5 rounded-full text-sm transition">Browse Files</button>
           </div>
-         
-  <div class="bg-zinc-900 rounded-3xl p-8 border-2 border-dashed border-sky-500/30">
-    <h2 class="text-2xl font-bold mb-4">Reset Data</h2>
-    <div class="flex gap-3">
-      <button id="resetDrugsButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
-        Reset Drugs
-      </button>
-      <button id="resetUsersButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
-        Reset Users
-      </button>
-      <button id="resetActivityButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
-        Reset Activity Log
-      </button>
-    </div>
-  </div>
-</div>
-
           <div id="generalPreview" class="mt-3 hidden">
             <div id="generalPreviewTable" class="max-h-32 overflow-auto bg-zinc-800/50 p-3 rounded-xl text-xs"></div>
             <div class="flex gap-2 mt-2">
@@ -249,7 +232,8 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
           <div id="petrolResult" class="mt-2 text-sm"></div>
         </div>
       </div>
-      <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+      <!-- Petroleum Price Management Table: shown only to admin (will be conditionally hidden) -->
+      <div id="petroleumPriceMgmtContainer" class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800 hidden">
         <h3 class="font-semibold text-lg mb-4">📋 Petroleum Commission Price Management</h3>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -263,7 +247,21 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
               </tr>
             </thead>
             <tbody id="petroleumPriceTable"></tbody>
-          </table>
+           </table>
+        </div>
+      </div>
+      <div class="bg-zinc-900 rounded-3xl p-8 border-2 border-dashed border-sky-500/30 mt-6">
+        <h2 class="text-2xl font-bold mb-4">Reset Data</h2>
+        <div class="flex gap-3">
+          <button id="resetDrugsButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
+            Reset Drugs
+          </button>
+          <button id="resetUsersButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
+            Reset Users
+          </button>
+          <button id="resetActivityButton" class="bg-sky-500/80 hover:bg-sky-600 px-5 py-2 rounded-full font-semibold text-white transition">
+            Reset Activity Log
+          </button>
         </div>
       </div>
     </div>
@@ -306,7 +304,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
       </div>
     </div>
 
-    <!-- ADMIN -->
+    <!-- ADMIN (exclusive: full price management table remains) -->
     <div id="admin-section" class="section hidden">
       <div class="space-y-6">
         <div class="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
@@ -322,6 +320,24 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
             <button id="addUserBtn" class="bg-emerald-500 hover:bg-emerald-600 px-6 py-2.5 rounded-2xl text-white font-semibold transition shadow shadow-emerald-500/20">➕ Add User</button>
           </div>
           <div id="userListContainer" class="space-y-2"></div>
+        </div>
+        <!-- Admin: Petroleum Commission Price Management table (moved here) -->
+        <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+          <h3 class="font-semibold text-lg mb-4">📋 Petroleum Commission Price Management</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-white/10 text-zinc-400 text-xs uppercase">
+                  <th class="p-3 text-left">Drug</th>
+                  <th class="p-3 text-left">Strength</th>
+                  <th class="p-3 text-right">General Price</th>
+                  <th class="p-3 text-right">Petroleum Price</th>
+                  <th class="p-3 text-center w-28">Action</th>
+                 </tr>
+              </thead>
+              <tbody id="adminPetroleumPriceTable"></tbody>
+             </table>
+          </div>
         </div>
         <div class="bg-zinc-900 rounded-3xl p-8 border-2 border-dashed border-sky-500/30">
           <h2 class="text-2xl font-bold mb-2">📂 Bulk Import (Full Drug Data)</h2>
@@ -414,1111 +430,77 @@ function getCurrentPrice(drug) {
     ? (parseFloat(drug.petroleumPrice) || parseFloat(drug.generalPrice))
     : parseFloat(drug.generalPrice);
 }
-function esc(str) {
-  if (!str && str !== 0) return '';
-  return String(str).replace(/[&<>"']/g, function(m){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
-  });
-}
-function toast(msg, type) {
-  var t = document.createElement('div');
-  t.className = 'fixed bottom-6 right-6 z-[999] px-5 py-3 rounded-2xl text-white text-sm font-medium shadow-lg transition-all '
-    + (type==='error' ? 'bg-red-500' : type==='warn' ? 'bg-amber-500' : 'bg-emerald-500');
-  t.innerText = msg;
-  document.body.appendChild(t);
-  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },400); }, 2800);
-}
-function addLog(msg) {
-  activityLog.unshift({msg:msg, time:new Date().toLocaleTimeString(), user:currentUser ? currentUser.name : 'System'});
-  if (activityLog.length > 30) activityLog.pop();
-  renderRecentLog();
-  saveAllData();
-}
-function renderRecentLog() {
-  var c = document.getElementById('recent-log'); if (!c) return;
-  c.innerHTML = activityLog.length
-    ? activityLog.map(function(l){
-        return '<div class="py-1 border-b border-white/5 flex gap-2"><span class="text-zinc-500 shrink-0">'+l.time+'</span><span>'+esc(l.msg)+'</span></div>';
-      }).join('')
-    : '<div class="text-zinc-500 italic">No activity yet</div>';
-}
+function esc(str) { if (!str && str !== 0) return ''; return String(str).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+function toast(msg, type) { var t=document.createElement('div'); t.className='fixed bottom-6 right-6 z-[999] px-5 py-3 rounded-2xl text-white text-sm font-medium shadow-lg transition-all '+(type==='error'?'bg-red-500':type==='warn'?'bg-amber-500':'bg-emerald-500'); t.innerText=msg; document.body.appendChild(t); setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },400); }, 2800); }
+function addLog(msg) { activityLog.unshift({msg:msg, time:new Date().toLocaleTimeString(), user:currentUser?currentUser.name:'System'}); if (activityLog.length>30) activityLog.pop(); renderRecentLog(); saveAllData(); }
+function renderRecentLog() { var c=document.getElementById('recent-log'); if(!c) return; c.innerHTML=activityLog.length?activityLog.map(function(l){return '<div class="py-1 border-b border-white/5 flex gap-2"><span class="text-zinc-500 shrink-0">'+l.time+'</span><span>'+esc(l.msg)+'</span></div>';}).join(''):'<div class="text-zinc-500 italic">No activity yet</div>';}
+function saveAllData() { try { localStorage.setItem('pmc_users', JSON.stringify(users)); localStorage.setItem('pmc_drugs', JSON.stringify(drugs)); localStorage.setItem('pmc_log', JSON.stringify(activityLog)); } catch(e){} if (typeof google!=='undefined' && google.script && google.script.run) { google.script.run.withSuccessHandler(function(r){}).withFailureHandler(function(e){}).syncAllData({drugs:drugs, users:users, activity:activityLog}); } }
+function loadAllData() { try { var d=localStorage.getItem('pmc_drugs'); var l=localStorage.getItem('pmc_log'); drugs=d?JSON.parse(d):JSON.parse(JSON.stringify(DEFAULT_DRUGS)); activityLog=l?JSON.parse(l):[]; } catch(e){ drugs=JSON.parse(JSON.stringify(DEFAULT_DRUGS)); activityLog=[]; } if (typeof google!=='undefined' && google.script && google.script.run) { google.script.run.withSuccessHandler(function(data){ if(data&&data.users&&data.users.length) users=data.users; else _loadUsersFromLocal(); if(data&&data.drugs&&data.drugs.length) drugs=data.drugs; if(data&&data.activity) activityLog=data.activity; renderRecentLog(); }).withFailureHandler(function(){ _loadUsersFromLocal(); }).getAllData(); } else { _loadUsersFromLocal(); } }
+function _loadUsersFromLocal() { try { var u=localStorage.getItem('pmc_users'); users=u?JSON.parse(u):JSON.parse(JSON.stringify(DEFAULT_USERS)); } catch(e){ users=JSON.parse(JSON.stringify(DEFAULT_USERS)); } if (!users.find(function(x){ return x.username==='admin'; })) users.unshift(DEFAULT_USERS[0]); }
 
-// ==================== PERSISTENCE ====================
-function saveAllData() {
-  // Always save locally first (instant)
-  try {
-    localStorage.setItem('pmc_users', JSON.stringify(users));
-    localStorage.setItem('pmc_drugs', JSON.stringify(drugs));
-    localStorage.setItem('pmc_log',   JSON.stringify(activityLog));
-  } catch(e) { console.warn('localStorage save failed:', e); }
-
-  // Then push to Google Sheet (background)
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function(r){ if(!r||!r.success) console.warn('Sheet sync failed:', r); })
-      .withFailureHandler(function(e){ console.warn('Sheet sync error:', e); })
-      .syncAllData({
-        drugs:    drugs,
-        users:    users,
-        activity: activityLog
-      });
-  }
+// ==================== LOGIN & RENDER PRICE MGMT BASED ON ROLE ====================
+function attemptLogin() { var uname=document.getElementById('loginUsername').value.trim(); var pwd=document.getElementById('loginPassword').value; if(!uname||!pwd){ showLoginError('Please enter username and password'); return; } var btn=document.getElementById('doLoginBtn'); btn.innerText='⏳ Signing in...'; btn.disabled=true; if(typeof google!=='undefined'&&google.script&&google.script.run){ google.script.run.withSuccessHandler(function(result){ btn.innerText='🔐 Sign In'; btn.disabled=false; if(result&&result.success) _completeLogin(result.user); else showLoginError(result.error||'Invalid username or password'); }).withFailureHandler(function(err){ btn.innerText='🔐 Sign In'; btn.disabled=false; _localLogin(uname,pwd); }).validateLogin(uname,pwd); } else { btn.innerText='🔐 Sign In'; btn.disabled=false; _localLogin(uname,pwd); } }
+function _localLogin(uname,pwd) { var user=users.find(function(u){ return u.username===uname&&u.password===pwd&&(u.enabled===true||u.enabled==='true'||u.enabled==='TRUE'); }); if(user) _completeLogin(user); else showLoginError('Invalid username or password'); }
+function _completeLogin(user) { currentUser=user; if(document.getElementById('rememberMe').checked) localStorage.setItem('pmc_ru',user.username); else{ localStorage.removeItem('pmc_ru'); localStorage.removeItem('pmc_rp'); } document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('appContainer').classList.remove('hidden'); document.getElementById('userNameDisplay').innerText=user.name; document.getElementById('userRoleBadge').innerText=user.role.toUpperCase(); document.getElementById('roleDisplay').innerHTML='Logged in as <span class="text-sky-300 font-medium">'+user.role+'</span>'; buildNav(); setupLiveSearch(); updateStats(); renderRecentLog(); addLog(user.name+' logged in'); if(user.role==='admin') { document.getElementById('petroleumPriceMgmtContainer')?.classList.remove('hidden'); renderAdminPetroleumTable(); } else { document.getElementById('petroleumPriceMgmtContainer')?.classList.add('hidden'); } }
+function showLoginError(msg) { var e=document.getElementById('loginError'); e.innerHTML='❌ '+msg; e.classList.remove('hidden'); document.getElementById('loginPassword').value=''; setTimeout(function(){ e.classList.add('hidden'); },3000); }
+function logout() { addLog((currentUser?currentUser.name:'User')+' logged out'); currentUser=null; uploadPortalsReady=false; legacyUploadReady=false; cartItems=[]; currentPriceTier='general'; document.getElementById('loginScreen').classList.remove('hidden'); document.getElementById('appContainer').classList.add('hidden'); document.getElementById('loginPassword').value=''; }
+function loadRememberedLogin() { var ru=localStorage.getItem('pmc_ru'), rp=localStorage.getItem('pmc_rp'); if(ru&&rp){ document.getElementById('loginUsername').value=ru; document.getElementById('loginPassword').value=rp; document.getElementById('rememberMe').checked=true; } }
+function buildNav() { var nav=document.getElementById('navContainer'); if(!nav)return; var p=perms[currentUser.role]; var items=[{id:'dashboard',label:'📊 Dashboard'}]; if(p.inventory) items.push({id:'inventory',label:'📦 Inventory'}); if(p.add) items.push({id:'add',label:'➕ Add Drug'}); if(p.reports) items.push({id:'reports',label:'📈 Reports'}); if(p.upload) items.push({id:'uploads',label:'📂 Uploads'}); if(p.admin) items.push({id:'admin',label:'👑 Admin'}); nav.innerHTML=items.map(function(i){ return '<button data-nav="'+i.id+'" class="px-4 py-2 rounded-full text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 transition">'+i.label+'</button>'; }).join(''); document.querySelectorAll('[data-nav]').forEach(function(btn){ btn.addEventListener('click',function(){ showSection(btn.dataset.nav); }); }); showSection('dashboard'); }
+window.showSection = function(section) { document.querySelectorAll('.section').forEach(function(s){ s.classList.add('hidden'); }); var el=document.getElementById(section+'-section'); if(el) el.classList.remove('hidden'); document.querySelectorAll('[data-nav]').forEach(function(b){ b.className=b.dataset.nav===section?'px-4 py-2 rounded-full text-sm font-semibold bg-sky-500 text-white transition':'px-4 py-2 rounded-full text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 transition'; }); if(section==='inventory'){ renderInventory(); renderCart(); } if(section==='dashboard') updateStats(); if(section==='reports') updateStats(); if(section==='add') document.getElementById('formTitle').innerText=document.getElementById('editId').value?'✏️ Edit Drug':'➕ Add New Drug'; if(section==='uploads'){ renderPetroleumPriceTable(); if(!uploadPortalsReady){ setupUploadPortals(); uploadPortalsReady=true; } if(currentUser&&currentUser.role==='admin') document.getElementById('petroleumPriceMgmtContainer')?.classList.remove('hidden'); else document.getElementById('petroleumPriceMgmtContainer')?.classList.add('hidden'); } if(section==='admin'&&currentUser&&currentUser.role==='admin'){ renderUserList(); if(!legacyUploadReady){ setupLegacyUpload(); legacyUploadReady=true; } renderAdminPetroleumTable(); } };
+function renderAdminPetroleumTable() { var tbody=document.getElementById('adminPetroleumPriceTable'); if(!tbody) return; tbody.innerHTML=drugs.map(function(d){ return '<tr class="border-t border-white/10 hover:bg-white/5 transition">'+'<td class="p-3 font-medium">'+esc(d.name)+'</td>'+'<td class="p-3 text-zinc-400">'+esc(d.strength||'—')+'</td>'+'<td class="p-3 text-right text-emerald-300">₵'+parseFloat(d.generalPrice).toFixed(2)+'</td>'+'<td class="p-3 text-right"><input type="number" step="0.01" min="0" id="adminPetroPrice_'+d.id+'" value="'+parseFloat(d.petroleumPrice||d.generalPrice).toFixed(2)+'" class="bg-zinc-800 border border-zinc-600 rounded-xl px-3 py-1 w-28 text-right text-white outline-none focus:border-amber-400 transition"></td>'+'<td class="p-3 text-center"><button onclick="updatePetroleumPrice('+d.id+')" class="bg-amber-500/80 hover:bg-amber-500 px-3 py-1 rounded-full text-xs text-white transition">Update</button></td></tr>'; }).join(''); }
+function updatePetroleumPrice(id) { var drug=drugs.find(function(d){ return d.id==id; }); if(!drug) return; var newPrice=parseFloat(document.getElementById('adminPetroPrice_'+id).value); if(isNaN(newPrice)||newPrice<0) newPrice=drug.generalPrice; drug.petroleumPrice=newPrice; saveAllData(); addLog('Updated Petroleum price for '+drug.name+': ₵'+newPrice.toFixed(2)); toast('✅ Petroleum price updated for '+drug.name, 'success'); renderAdminPetroleumTable(); renderInventory(); }
+function renderPetroleumPriceTable() { var tbody=document.getElementById('petroleumPriceTable'); if(!tbody) return; tbody.innerHTML=drugs.map(function(d){ return '<tr class="border-t border-white/10 hover:bg-white/5 transition">'+'<td class="p-3 font-medium">'+esc(d.name)+'</td><td class="p-3 text-zinc-400">'+esc(d.strength||'—')+'</td><td class="p-3 text-right text-emerald-300">₵'+parseFloat(d.generalPrice).toFixed(2)+'</td><td class="p-3 text-right">₵'+parseFloat(d.petroleumPrice||d.generalPrice).toFixed(2)+'</td><td class="p-3 text-center">—</td></tr>'; }).join(''); }
+function renderInventory() { if(!currentUser||!perms[currentUser.role].inventory){ document.getElementById('inventory-tbody').innerHTML='<tr><td colspan="7" class="p-8 text-center text-zinc-500">🔒 Access Denied</td></tr>'; return; } var q=(document.getElementById('searchInput')?document.getElementById('searchInput').value:'').toLowerCase().trim(); var filtered=drugs.filter(function(d){ return d.name.toLowerCase().includes(q)||(d.strength||'').toLowerCase().includes(q)||(d.location||'').toLowerCase().includes(q)||(d.whenTaken||'').toLowerCase().includes(q); }); var sort=document.getElementById('sortSelect')?document.getElementById('sortSelect').value:'name'; if(sort==='stock-asc') filtered.sort(function(a,b){ return a.stock-b.stock; }); else if(sort==='price-asc') filtered.sort(function(a,b){ return getCurrentPrice(a)-getCurrentPrice(b); }); else filtered.sort(function(a,b){ return a.name.localeCompare(b.name); }); var canSell=perms[currentUser.role].sell; var canEdit=perms[currentUser.role].edit; document.getElementById('inventory-tbody').innerHTML=filtered.length?filtered.map(function(d){ var isLow=d.stock<=d.minBal; return '<tr class="border-t border-white/5 hover:bg-white/5 transition"><td class="p-3 font-medium">'+esc(d.name)+'</td><td class="p-3 text-zinc-400">'+esc(d.strength||'—')+'</td><td class="p-3 text-right font-medium text-emerald-300">₵'+getCurrentPrice(d).toFixed(2)+'</td><td class="p-3 text-center '+(isLow?'text-amber-400 font-bold':'text-white')+'">'+Math.floor(d.stock)+(isLow?' ⚠️':'')+'</td><td class="p-3 text-center text-zinc-400">'+d.minBal+'</td><td class="p-3 text-zinc-400">'+esc(d.location||'—')+'</td><td class="p-3"><div class="flex gap-1.5 justify-center flex-wrap">'+(canSell&&d.stock>0?'<button onclick="addToCartById('+d.id+')" class="bg-emerald-500/80 hover:bg-emerald-600 px-3 py-1.5 rounded-full text-xs text-white transition">➕ Cart</button>':(canSell?'<span class="text-xs text-red-400 px-2">Out of stock</span>':''))+(canEdit?'<button onclick="openRestockModal('+d.id+')" class="bg-amber-500/80 hover:bg-amber-600 px-3 py-1.5 rounded-full text-xs text-white transition">📦 Restock</button><button onclick="editDrug('+d.id+')" class="bg-sky-500/80 hover:bg-sky-600 px-3 py-1.5 rounded-full text-xs text-white transition">✏️ Edit</button>':'')+'</div></td></tr>'; }).join(''):'<tr><td colspan="7" class="p-10 text-center text-zinc-500 italic">No drugs found matching your search</td></tr>'; var rs=document.getElementById('searchResultCount'); if(rs) rs.innerHTML=q?'🔍 Found <strong>'+filtered.length+'</strong> result(s) for "'+esc(q)+'"':'📦 Showing all <strong>'+filtered.length+'</strong> drugs'; var xi=document.getElementById('searchClearIcon'); if(xi) xi.classList.toggle('hidden',!q.length); }
+function addToCartById(id) { var drug=drugs.find(function(d){ return d.id==id; }); if(drug&&drug.stock>0){ addToCart(drug); toast('Added '+drug.name+' to cart'); } else toast('Out of stock','warn'); }
+function addToCart(drug) { var price=getCurrentPrice(drug); var ex=cartItems.find(function(i){ return i.id==drug.id; }); if(ex) ex.qty++; else cartItems.push({id:drug.id,name:drug.name,strength:drug.strength,price:price,qty:1}); renderCart(); }
+function renderCart() { var c=document.getElementById('selectedDrugsContainer'); if(!c)return; if(!cartItems.length){ c.innerHTML='<div class="text-zinc-500 text-sm italic py-2">No items in cart. Click ➕ Cart on any drug below.</div>'; document.getElementById('cartTotalItems').innerText='0'; document.getElementById('cartTotalAmount').innerHTML='₵0.00'; return; } c.innerHTML=cartItems.map(function(item){ return '<div class="cart-item"><span class="font-medium text-sm">'+esc(item.name)+'</span>'+(item.strength?'<span class="text-xs text-zinc-400">'+esc(item.strength)+'</span>':'')+'<span class="text-emerald-300 text-sm">₵'+item.price.toFixed(2)+'</span><input type="number" value="'+item.qty+'" min="1" class="cart-qty-input" onchange="updateCartQty('+item.id+',this.value)"><span class="text-emerald-200 text-xs font-medium">= ₵'+(item.price*item.qty).toFixed(2)+'</span><button onclick="removeFromCart('+item.id+')" class="text-red-400 hover:text-red-300 font-bold text-lg leading-none">✕</button></div>'; }).join(''); document.getElementById('cartTotalItems').innerText=cartItems.reduce(function(s,i){ return s+i.qty; },0); document.getElementById('cartTotalAmount').innerHTML='₵'+cartItems.reduce(function(s,i){ return s+(i.price*i.qty); },0).toFixed(2); }
+function updateCartQty(id,v){ var q=parseInt(v); if(isNaN(q)||q<1) q=1; var item=cartItems.find(function(i){ return i.id==id;}); if(item){ item.qty=q; renderCart(); } }
+function removeFromCart(id){ cartItems=cartItems.filter(function(i){ return i.id!=id;}); renderCart(); }
+function clearCart(){ cartItems=[]; renderCart(); }
+function processMultiSale(){ if(!cartItems.length){ toast('No items in cart','warn'); return; } var errors=[], soldItems=[], receiptItems=[], total=0; cartItems.forEach(function(item){ var drug=drugs.find(function(d){ return d.id==item.id;}); if(!drug){ errors.push(item.name+': not found'); return;} if(drug.stock<item.qty){ errors.push(item.name+': only '+drug.stock+' in stock'); return;} var priceUsed=getCurrentPrice(drug); drug.stock-=item.qty; drug.soldTotal=(drug.soldTotal||0)+item.qty; var subtotal=priceUsed*item.qty; total+=subtotal; soldItems.push(item.qty+'x '+item.name); receiptItems.push({name:item.name,strength:item.strength,qty:item.qty,price:priceUsed,subtotal:subtotal}); }); if(soldItems.length>0){ addLog('SALE: '+soldItems.join(', ')+' — Total: ₵'+total.toFixed(2)+' ('+(currentPriceTier==='general'?'General':'Petroleum')+')'); renderInventory(); updateStats(); saveAllData(); showReceipt(receiptItems,total); } if(errors.length>0){ toast('Errors: '+errors.join('; '),'error'); } clearCart(); }
+function showReceipt(items,total){ var tierName=currentPriceTier==='general'?'General Public':'Petroleum Commission'; var h='<div class="text-center border-b border-gray-200 pb-3 mb-3"><h2 class="text-lg font-bold">PSALMIST MEDICAL CENTRE</h2><p class="text-xs text-gray-500">'+new Date().toLocaleString()+'</p><p class="text-xs">Price Tier: <strong>'+tierName+'</strong></p><p class="text-xs">Cashier: '+esc(currentUser?currentUser.name:'Staff')+'</p></div><table class="w-full text-xs"><thead><tr class="border-b border-gray-200"><th class="text-left pb-1">Item</th><th class="text-center pb-1">Qty</th><th class="text-right pb-1">Price</th><th class="text-right pb-1">Subtotal</th></tr></thead><tbody>'; items.forEach(function(i){ h+='<tr><td class="py-1">'+esc(i.name)+(i.strength?' ('+esc(i.strength)+')':'')+'</td><td class="text-center">'+i.qty+'</td><td class="text-right">₵'+parseFloat(i.price).toFixed(2)+'</td><td class="text-right">₵'+parseFloat(i.subtotal).toFixed(2)+'</td></tr>'; }); h+='</tbody><tfoot><tr class="border-t-2 border-gray-300"><td colspan="3" class="pt-2 font-bold text-sm">TOTAL</td><td class="text-right font-bold pt-2 text-sm">₵'+total.toFixed(2)+'</td></tr></tfoot></div><div class="text-center text-xs text-gray-400 mt-4 border-t border-gray-200 pt-3">Thank you for your patronage! 🙏</div>'; document.getElementById('receiptContent').innerHTML=h; document.getElementById('receiptModal').classList.remove('hidden'); }
+function closeReceipt(){ document.getElementById('receiptModal').classList.add('hidden'); }
+function setPriceTier(tier){ currentPriceTier=tier; var gBtn=document.getElementById('tierGeneral'), pBtn=document.getElementById('tierPetroleum'); gBtn.className=tier==='general'?'px-5 py-2 rounded-full font-semibold transition bg-sky-500 text-white shadow shadow-sky-500/20':'px-5 py-2 rounded-full font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600'; pBtn.className=tier==='petroleum'?'px-5 py-2 rounded-full font-semibold transition bg-sky-500 text-white shadow shadow-sky-500/20':'px-5 py-2 rounded-full font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600'; document.getElementById('cartPriceLabel').innerText=tier==='general'?'General Public':'Petroleum Commission'; document.getElementById('priceHeader').innerHTML=tier==='general'?'General Price (₵)':'Petroleum Price (₵)'; cartItems.forEach(function(item){ var drug=drugs.find(function(d){ return d.id==item.id;}); if(drug) item.price=getCurrentPrice(drug); }); renderInventory(); renderCart(); }
+function updateStats(){ document.getElementById('stat-total').innerText=drugs.length; var val=drugs.reduce(function(s,d){ return s+d.stock*d.generalPrice; },0); document.getElementById('stat-value').innerHTML='₵'+val.toFixed(2); document.getElementById('stat-low').innerText=drugs.filter(function(d){ return d.stock<=d.minBal; }).length; document.getElementById('stat-sold').innerText=drugs.reduce(function(s,d){ return s+(d.soldTotal||0); },0); var lw=document.getElementById('lowStockList'); if(lw){ var li=drugs.filter(function(d){ return d.stock<=d.minBal;}); lw.innerHTML=li.length?li.map(function(d){ return '<div class="flex justify-between border-b border-white/10 py-2 items-center"><span>'+esc(d.name)+' <span class="text-xs text-zinc-500">'+esc(d.strength||'')+'</span></span><span class="text-amber-400 font-bold">'+Math.floor(d.stock)+' / '+d.minBal+'</span></div>'; }).join(''):'<div class="text-emerald-400 py-2">✅ All stock levels are healthy</div>'; } var locMap={}; drugs.forEach(function(d){ var l=d.location||'Other'; locMap[l]=(locMap[l]||0)+d.stock*d.generalPrice; }); var ld=document.getElementById('locationValue'); if(ld) ld.innerHTML=Object.keys(locMap).map(function(k){ return '<div class="flex justify-between border-b border-white/5 py-1.5"><span class="text-zinc-300">'+esc(k)+'</span><span class="font-medium text-sky-300">₵'+locMap[k].toFixed(2)+'</span></div>'; }).join(''); renderTopSelling(); updateCharts(); }
+function renderTopSelling(){ var sorted=drugs.slice().sort(function(a,b){ return (b.soldTotal||0)-(a.soldTotal||0); }).slice(0,5); var c=document.getElementById('topSellingList'); if(!c)return; c.innerHTML=sorted.length?sorted.map(function(d,i){ var medals=['🥇','🥈','🥉','4️⃣','5️⃣']; return '<div class="flex justify-between py-1.5 border-b border-white/5"><span>'+medals[i]+' '+esc(d.name)+'</span><span class="text-emerald-400 font-medium">'+(d.soldTotal||0)+' units</span></div>'; }).join(''):'<div class="text-zinc-500 italic">No sales yet</div>'; }
+function updateCharts(){ var lm={}; drugs.forEach(function(d){ var l=d.location||'Other'; lm[l]=(lm[l]||0)+d.stock*d.generalPrice;}); var c1=document.getElementById('locationChart'); if(c1){ if(locationChart) locationChart.destroy(); locationChart=new Chart(c1.getContext('2d'),{type:'bar',data:{labels:Object.keys(lm), datasets:[{label:'Value (₵)', data:Object.values(lm).map(function(v){ return parseFloat(v.toFixed(2)); }), backgroundColor:'#0ea5e9', borderRadius:6}]}, options:{responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:function(v){ return '₵'+v; }}}}} }); } var low=drugs.filter(function(d){ return d.stock<=d.minBal; }).slice(0,6); var c2=document.getElementById('lowStockChart'); if(c2){ if(lowStockChart) lowStockChart.destroy(); lowStockChart=new Chart(c2.getContext('2d'),{type:'bar',data:{labels:low.map(function(d){ return d.name.length>10?d.name.slice(0,9)+'..':d.name; }), datasets:[{label:'Stock', data:low.map(function(d){ return d.stock; }), backgroundColor:'#f59e0b', borderRadius:4},{label:'Min Bal', data:low.map(function(d){ return d.minBal; }), backgroundColor:'#ef4444', borderRadius:4}]}, options:{responsive:true, plugins:{legend:{labels:{color:'#ccc',font:{size:11}}}}} }); } }
+function editDrug(id){ if(!perms[currentUser.role].edit) return; var d=drugs.find(function(x){ return x.id==id;}); if(!d) return; document.getElementById('editId').value=d.id; document.getElementById('drugName').value=d.name; document.getElementById('strength').value=d.strength||''; document.getElementById('cost').value=d.cost; document.getElementById('generalPrice').value=d.generalPrice; document.getElementById('petroleumPrice').value=d.petroleumPrice||d.generalPrice; document.getElementById('stock').value=d.stock; document.getElementById('minBal').value=d.minBal; document.getElementById('location').value=d.location||''; document.getElementById('whenTaken').value=d.whenTaken||''; showSection('add'); }
+function saveDrug(e){ e.preventDefault(); if(!perms[currentUser.role].add){ toast('Permission denied','error'); return; } var id=parseInt(document.getElementById('editId').value); var name=document.getElementById('drugName').value.trim(); if(!name){ toast('Drug name is required','warn'); return; } var gp=parseFloat(document.getElementById('generalPrice').value)||0; var drug={ id:id||Date.now(), name:name, strength:document.getElementById('strength').value.trim(), cost:parseFloat(document.getElementById('cost').value)||0, generalPrice:gp, petroleumPrice:parseFloat(document.getElementById('petroleumPrice').value)||gp, stock:parseInt(document.getElementById('stock').value)||0, minBal:parseInt(document.getElementById('minBal').value)||5, location:document.getElementById('location').value.trim(), whenTaken:document.getElementById('whenTaken').value.trim(), soldTotal:0 }; var idx=drugs.findIndex(function(d){ return d.id==id; }); if(id&&idx>=0){ drug.soldTotal=drugs[idx].soldTotal||0; drugs[idx]=drug; addLog('Updated drug: '+name); toast('✅ Drug updated successfully'); } else { drugs.push(drug); addLog('Added new drug: '+name); toast('✅ Drug added successfully'); } renderInventory(); updateStats(); saveAllData(); clearForm(); showSection('inventory'); }
+function clearForm(){ ['editId','drugName','strength','cost','generalPrice','petroleumPrice','stock','location','whenTaken'].forEach(function(id){ document.getElementById(id).value=''; }); document.getElementById('minBal').value='10'; }
+function setupLiveSearch(){ var si=document.getElementById('searchInput'); if(!si) return; si.addEventListener('input',function(){ clearTimeout(debounceTimer); debounceTimer=setTimeout(function(){ renderInventory(); },150); }); var xi=document.getElementById('searchClearIcon'); if(xi) xi.addEventListener('click',function(){ document.getElementById('searchInput').value=''; renderInventory(); document.getElementById('searchInput').focus(); }); }
+function exportCSV(){ var rows=[["ID","Name","Strength","Cost","GeneralPrice","PetroleumPrice","Stock","MinBal","Location","WhenTaken","SoldTotal"]]; drugs.forEach(function(d){ rows.push([d.id,d.name,d.strength||'',d.cost,d.generalPrice,d.petroleumPrice||d.generalPrice,d.stock,d.minBal,d.location||'',d.whenTaken||'',d.soldTotal||0]); }); var blob=new Blob([rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n')], {type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='psalmist_inventory_'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); addLog('Inventory CSV exported by '+currentUser.name); toast('✅ CSV exported'); }
+function renderUserList(){ var c=document.getElementById('userListContainer'); if(!c) return; c.innerHTML=users.map(function(u){ var isAdmin=u.username==='admin'; return '<div class="flex justify-between items-center bg-zinc-800 p-3 rounded-2xl gap-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold">'+u.name.charAt(0).toUpperCase()+'</div><div><span class="font-medium">'+esc(u.username)+'</span><span class="text-xs text-zinc-400 ml-2">('+u.role+')</span><span class="text-xs ml-2 '+(u.enabled?'text-emerald-400':'text-red-400')+'">'+(u.enabled?'● Active':'● Disabled')+'</span></div></div><div class="flex gap-2">'+(isAdmin?'<span class="text-xs text-zinc-500 italic px-2">Protected</span>':'<button onclick="toggleUser('+u.id+')" class="px-3 py-1 rounded-full text-xs font-medium '+(u.enabled?'bg-red-500/30 text-red-300 hover:bg-red-500/50':'bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/50')+' transition">'+(u.enabled?'Disable':'Enable')+'</button><button onclick="deleteUser('+u.id+')" class="px-3 py-1 bg-red-500/40 hover:bg-red-500/60 text-red-200 rounded-full text-xs transition">Delete</button>')+'</div></div>'; }).join(''); }
+function addUser(){ var uname=document.getElementById('newUsername').value.trim(); var role=document.getElementById('newRole').value; var pwd=document.getElementById('newPassword').value.trim(); if(!uname){ toast('Enter a username','warn'); return; } if(!pwd){ toast('Enter a password','warn'); return; } if(users.find(function(u){ return u.username===uname; })){ toast('Username already exists','error'); return; } var btn=document.getElementById('addUserBtn'); btn.disabled=true; btn.innerText='⏳ Saving...'; var newUser={id:Date.now(), username:uname, password:pwd, role:role, name:uname, enabled:true}; if(typeof google!=='undefined'&&google.script&&google.script.run){ google.script.run.withSuccessHandler(function(result){ btn.disabled=false; btn.innerText='➕ Add User'; if(result&&result.success){ users.push(newUser); renderUserList(); addLog('New user added: '+uname+' ('+role+')'); toast('✅ User "'+uname+'" saved to server'); document.getElementById('newUsername').value=''; document.getElementById('newPassword').value=''; } else { toast('❌ '+(result.error||'Failed to save user'),'error'); } }).withFailureHandler(function(err){ btn.disabled=false; btn.innerText='➕ Add User'; toast('❌ Server error: '+err.message,'error'); }).addUserToSheet(newUser); } else { users.push(newUser); saveAllData(); renderUserList(); addLog('New user added: '+uname+' ('+role+')'); toast('✅ User "'+uname+'" created (local only)'); document.getElementById('newUsername').value=''; document.getElementById('newPassword').value=''; btn.disabled=false; btn.innerText='➕ Add User'; } }
+function toggleUser(id){ var u=users.find(function(x){ return x.id==id;}); if(u&&u.username!=='admin'){ u.enabled=!u.enabled; saveAllData(); renderUserList(); addLog((u.enabled?'Enabled':'Disabled')+' user: '+u.username); toast((u.enabled?'✅ Enabled':'🚫 Disabled')+': '+u.username); } else toast('Cannot modify admin account','error'); }
+function deleteUser(id){ var u=users.find(function(x){ return x.id==id;}); if(u&&u.username!=='admin'){ if(!confirm('Delete user "'+u.username+'"? This cannot be undone.')) return; users=users.filter(function(x){ return x.id!=id;}); saveAllData(); renderUserList(); addLog('Deleted user: '+u.username); toast('🗑️ User deleted'); } else toast('Cannot delete admin account','error'); }
+function readFileAsWorkbook(file,callback){ var reader=new FileReader(); reader.onload=function(e){ var data=new Uint8Array(e.target.result); var wb=XLSX.read(data,{type:'array'}); var ws=wb.Sheets[wb.SheetNames[0]]; callback(XLSX.utils.sheet_to_json(ws,{header:1,defval:''})); }; reader.readAsArrayBuffer(file); }
+function findCol(hdr,keywords){ for(var k=0;k<keywords.length;k++){ var idx=hdr.findIndex(function(h){ return h&&h.toString().toLowerCase().includes(keywords[k]); }); if(idx>=0) return idx; } return -1; }
+function setupGeneralUpload(){ var zone=document.getElementById('generalUploadZone'); var fi=document.getElementById('generalFileInput'); if(!zone||!fi)return; zone.addEventListener('click',function(){ fi.click();}); document.getElementById('generalBrowseBtn').addEventListener('click',function(e){ e.stopPropagation(); fi.click();}); zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.classList.add('drag-active');}); zone.addEventListener('dragleave',function(){ zone.classList.remove('drag-active');}); zone.addEventListener('drop',function(e){ e.preventDefault(); zone.classList.remove('drag-active'); if(e.dataTransfer.files[0]) handleGeneralFile(e.dataTransfer.files[0]);}); fi.addEventListener('change',function(e){ if(e.target.files[0]) handleGeneralFile(e.target.files[0]); fi.value='';}); document.getElementById('generalConfirmBtn').addEventListener('click',confirmGeneralUpload); document.getElementById('generalCancelBtn').addEventListener('click',function(){ document.getElementById('generalPreview').classList.add('hidden'); pendingGeneralData=[];}); }
+function handleGeneralFile(file){ readFileAsWorkbook(file,function(json){ processGeneralFile(json);}); }
+function processGeneralFile(data){ pendingGeneralData=[]; var hdr=data[0]||[]; var ni=findCol(hdr,['name']); if(ni<0) ni=0; var si=findCol(hdr,['strength']); var ci=findCol(hdr,['cost']); var pi=findCol(hdr,['price','selling']); var qi=findCol(hdr,['stock','qty','quantity']); var mi=findCol(hdr,['min','minimum']); var li=findCol(hdr,['location','shelf','store']); var wi=findCol(hdr,['when','taken','dosage']); for(var i=1;i<Math.min(data.length,500);i++){ var row=data[i]; if(!row[ni]) continue; pendingGeneralData.push({name:String(row[ni]).trim(),strength:si>=0?String(row[si]||'').trim():'',cost:ci>=0?parseFloat(row[ci])||0:0,generalPrice:pi>=0?parseFloat(row[pi])||0:0,stock:qi>=0?parseInt(row[qi])||0:0,minBal:mi>=0?parseInt(row[mi])||10:10,location:li>=0?String(row[li]||'').trim():'',whenTaken:wi>=0?String(row[wi]||'').trim():''}); } document.getElementById('generalPreviewTable').innerHTML='<div class="font-semibold mb-2 text-zinc-200">'+pendingGeneralData.length+' rows ready to import:</div>'+pendingGeneralData.slice(0,5).map(function(d){ return '<div class="text-zinc-400 py-0.5">→ <strong>'+esc(d.name)+'</strong> '+esc(d.strength)+' | Price: ₵'+d.generalPrice+' | Stock: '+d.stock+'</div>'; }).join('')+(pendingGeneralData.length>5?'<div class="text-zinc-500 mt-1">...and '+(pendingGeneralData.length-5)+' more</div>':''); document.getElementById('generalPreview').classList.remove('hidden'); }
+function confirmGeneralUpload(){ var btn=document.getElementById('generalConfirmBtn'); btn.disabled=true; btn.innerText='Importing...'; setTimeout(function(){ var added=0,updated=0; pendingGeneralData.forEach(function(d){ if(!d.name) return; var ex=drugs.find(function(x){ return x.name.toLowerCase()===d.name.toLowerCase() && (x.strength||'')===(d.strength||'');}); if(ex){ ex.cost=d.cost>0?d.cost:ex.cost; ex.generalPrice=d.generalPrice>0?d.generalPrice:ex.generalPrice; ex.petroleumPrice=d.petroleumPrice>0?d.petroleumPrice:ex.petroleumPrice; ex.stock=d.stock>0?d.stock:ex.stock; ex.minBal=d.minBal>0?d.minBal:ex.minBal; ex.location=d.location||ex.location; ex.whenTaken=d.whenTaken||ex.whenTaken; updated++; } else { drugs.push({id:Date.now()+Math.floor(Math.random()*9999),name:d.name,strength:d.strength,cost:d.cost,generalPrice:d.generalPrice,petroleumPrice:d.generalPrice,stock:d.stock,minBal:d.minBal,location:d.location,whenTaken:d.whenTaken,soldTotal:0}); added++; } }); saveAllData(); renderInventory(); updateStats(); addLog('General upload: +'+added+' new, '+updated+' updated'); toast('✅ Imported: '+added+' new, '+updated+' updated'); document.getElementById('generalResult').innerHTML='<div class="text-emerald-300 mt-1">✅ Added '+added+' new, updated '+updated+' — synced</div>'; document.getElementById('generalPreview').classList.add('hidden'); pendingGeneralData=[]; btn.disabled=false; btn.innerText='✅ Import'; setTimeout(function(){ document.getElementById('generalResult').innerHTML='';},6000); },100); }
+function setupPetrolUpload(){ var zone=document.getElementById('petrolUploadZone'); var fi=document.getElementById('petrolFileInput'); if(!zone||!fi)return; zone.addEventListener('click',function(){ fi.click();}); document.getElementById('petrolBrowseBtn').addEventListener('click',function(e){ e.stopPropagation(); fi.click();}); zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.classList.add('drag-active');}); zone.addEventListener('dragleave',function(){ zone.classList.remove('drag-active');}); zone.addEventListener('drop',function(e){ e.preventDefault(); zone.classList.remove('drag-active'); if(e.dataTransfer.files[0]) handlePetrolFile(e.dataTransfer.files[0]);}); fi.addEventListener('change',function(e){ if(e.target.files[0]) handlePetrolFile(e.target.files[0]); fi.value='';}); document.getElementById('petrolConfirmBtn').addEventListener('click',confirmPetrolUpload); document.getElementById('petrolCancelBtn').addEventListener('click',function(){ document.getElementById('petrolPreview').classList.add('hidden'); pendingPetrolData=[];}); }
+function handlePetrolFile(file){ readFileAsWorkbook(file,function(json){ processPetrolFile(json);}); }
+function processPetrolFile(data){ pendingPetrolData=[]; var hdr=data[0]||[]; var ni=findCol(hdr,['name']); if(ni<0) ni=0; var pi=findCol(hdr,['petroleum','price']); if(pi<0) pi=1; for(var i=1;i<Math.min(data.length,500);i++){ var row=data[i]; if(!row[ni]) continue; pendingPetrolData.push({name:String(row[ni]).trim(),price:parseFloat(row[pi])||0}); } document.getElementById('petrolPreviewTable').innerHTML='<div class="font-semibold mb-2 text-zinc-200">'+pendingPetrolData.length+' price updates ready:</div>'+pendingPetrolData.slice(0,5).map(function(d){ return '<div class="text-zinc-400 py-0.5">→ <strong>'+esc(d.name)+'</strong> | Petroleum Price: ₵'+d.price+'</div>'; }).join('')+(pendingPetrolData.length>5?'<div class="text-zinc-500 mt-1">...and '+(pendingPetrolData.length-5)+' more</div>':''); document.getElementById('petrolPreview').classList.remove('hidden'); }
+function confirmPetrolUpload(){ var btn=document.getElementById('petrolConfirmBtn'); btn.disabled=true; btn.innerText='Importing...'; setTimeout(function(){ var updated=0,notFound=0; pendingPetrolData.forEach(function(d){ if(!d.name) return; var drug=drugs.find(function(x){ return x.name.toLowerCase()===d.name.toLowerCase();}); if(drug){ drug.petroleumPrice=d.price; updated++; } else notFound++; }); saveAllData(); renderInventory(); renderPetroleumPriceTable(); if(currentUser&&currentUser.role==='admin') renderAdminPetroleumTable(); addLog('Petroleum upload: updated '+updated+' drugs'+(notFound?' ('+notFound+' not found)':'')); toast('✅ Updated '+updated+' petroleum prices'); document.getElementById('petrolResult').innerHTML='<div class="text-emerald-300 mt-1">✅ Updated '+updated+' drugs'+(notFound?' | ⚠️ '+notFound+' not found':'')+' — synced</div>'; document.getElementById('petrolPreview').classList.add('hidden'); pendingPetrolData=[]; btn.disabled=false; btn.innerText='✅ Import Prices'; setTimeout(function(){ document.getElementById('petrolResult').innerHTML='';},6000); },100); }
+function setupLegacyUpload(){ var zone=document.getElementById('uploadZone'); var fi=document.getElementById('fileInput'); if(!zone||!fi)return; zone.addEventListener('click',function(){ fi.click();}); document.getElementById('browseBtn').addEventListener('click',function(e){ e.stopPropagation(); fi.click();}); zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.classList.add('drag-active');}); zone.addEventListener('dragleave',function(){ zone.classList.remove('drag-active');}); zone.addEventListener('drop',function(e){ e.preventDefault(); zone.classList.remove('drag-active'); if(e.dataTransfer.files[0]) handleLegacyFile(e.dataTransfer.files[0]);}); fi.addEventListener('change',function(e){ if(e.target.files[0]) handleLegacyFile(e.target.files[0]); fi.value='';}); document.getElementById('confirmUploadBtn').addEventListener('click',confirmLegacyUpload); document.getElementById('cancelUploadBtn').addEventListener('click',function(){ document.getElementById('uploadPreview').classList.add('hidden'); pendingLegacyData=[];}); }
+function handleLegacyFile(file){ readFileAsWorkbook(file,function(json){ processLegacyFile(json);}); }
+function processLegacyFile(data){ pendingLegacyData=[]; var hdr=data[0]||[]; var ni=findCol(hdr,['name']); if(ni<0) ni=0; var si=findCol(hdr,['strength']); var ci=findCol(hdr,['cost']); var gi=findCol(hdr,['general']); var pti=findCol(hdr,['petroleum']); var qi=findCol(hdr,['stock','qty']); var mi=findCol(hdr,['min']); var li=findCol(hdr,['location']); var wi=findCol(hdr,['when','taken']); for(var i=1;i<Math.min(data.length,500);i++){ var row=data[i]; if(!row[ni]) continue; var gp=gi>=0?parseFloat(row[gi])||0:0; pendingLegacyData.push({name:String(row[ni]).trim(),strength:si>=0?String(row[si]||'').trim():'',cost:ci>=0?parseFloat(row[ci])||0:0,generalPrice:gp,petroleumPrice:pti>=0?parseFloat(row[pti])||gp:gp,stock:qi>=0?parseInt(row[qi])||0:0,minBal:mi>=0?parseInt(row[mi])||10:10,location:li>=0?String(row[li]||'').trim():'',whenTaken:wi>=0?String(row[wi]||'').trim():''}); } document.getElementById('previewTable').innerHTML='<div class="font-semibold mb-2 text-zinc-200">'+pendingLegacyData.length+' rows ready:</div>'+pendingLegacyData.slice(0,5).map(function(d){ return '<div class="text-zinc-400 py-0.5">→ <strong>'+esc(d.name)+'</strong> | General: ₵'+d.generalPrice+' | Petrol: ₵'+d.petroleumPrice+'</div>'; }).join('')+(pendingLegacyData.length>5?'<div class="text-zinc-500 mt-1">...and '+(pendingLegacyData.length-5)+' more</div>':''); document.getElementById('uploadPreview').classList.remove('hidden'); }
+function confirmLegacyUpload(){ var btn=document.getElementById('confirmUploadBtn'); btn.disabled=true; btn.innerText='Importing...'; setTimeout(function(){ var added=0,updated=0; pendingLegacyData.forEach(function(d){ if(!d.name) return; var ex=drugs.find(function(x){ return x.name.toLowerCase()===d.name.toLowerCase() && (x.strength||'')===(d.strength||'');}); if(ex){ ex.cost=d.cost>0?d.cost:ex.cost; ex.generalPrice=d.generalPrice>0?d.generalPrice:ex.generalPrice; ex.petroleumPrice=d.petroleumPrice>0?d.petroleumPrice:ex.petroleumPrice; ex.stock=d.stock>0?d.stock:ex.stock; ex.minBal=d.minBal>0?d.minBal:ex.minBal; ex.location=d.location||ex.location; ex.whenTaken=d.whenTaken||ex.whenTaken; updated++; } else { drugs.push({id:Date.now()+Math.floor(Math.random()*9999),name:d.name,strength:d.strength,cost:d.cost,generalPrice:d.generalPrice,petroleumPrice:d.petroleumPrice,stock:d.stock,minBal:d.minBal,location:d.location,whenTaken:d.whenTaken,soldTotal:0}); added++; } }); saveAllData(); renderInventory(); updateStats(); addLog('Bulk import: +'+added+' new, '+updated+' updated'); toast('✅ Bulk import: '+added+' new, '+updated+' updated'); document.getElementById('uploadResult').innerHTML='<div class="text-emerald-300 mt-1">✅ Added '+added+' new, updated '+updated+' — synced</div>'; document.getElementById('uploadPreview').classList.add('hidden'); pendingLegacyData=[]; btn.disabled=false; btn.innerText='✅ Import'; setTimeout(function(){ document.getElementById('uploadResult').innerHTML='';},6000); },100); }
+function setupUploadPortals(){ setupGeneralUpload(); setupPetrolUpload(); }
+function openRestockModal(id){ if(!perms[currentUser.role].edit) return; window.restockTargetId=id; var drug=drugs.find(function(d){ return d.id==id;}); document.getElementById('restockDrugTitle').innerText='Restock: '+drug.name+' ('+(drug.strength||'')+')'; document.getElementById('restockQtyInput').value=10; document.getElementById('restockModal').classList.remove('hidden'); setTimeout(function(){ document.getElementById('restockQtyInput').select();},100); }
+function confirmRestock(){ var drug=drugs.find(function(d){ return d.id==window.restockTargetId;}); if(!drug) return; var qty=parseInt(document.getElementById('restockQtyInput').value); if(isNaN(qty)||qty<1){ toast('Enter a valid quantity','warn'); return; } drug.stock+=qty; addLog('Restocked +'+qty+' × '+drug.name+' (new stock: '+drug.stock+')'); toast('✅ Added '+qty+' units to '+drug.name); renderInventory(); updateStats(); saveAllData(); document.getElementById('restockModal').classList.add('hidden'); }
+document.getElementById('doLoginBtn').addEventListener('click',attemptLogin); document.getElementById('loginPassword').addEventListener('keypress',function(e){ if(e.key==='Enter') attemptLogin();}); document.getElementById('loginUsername').addEventListener('keypress',function(e){ if(e.key==='Enter') document.getElementById('loginPassword').focus();}); document.getElementById('togglePwd').addEventListener('click',function(){ var p=document.getElementById('loginPassword'); p.type=p.type==='password'?'text':'password'; this.innerText=p.type==='password'?'👁':'🙈';}); document.getElementById('logoutBtn').addEventListener('click',logout); document.getElementById('drugForm').addEventListener('submit',saveDrug); document.getElementById('cancelFormBtn').addEventListener('click',function(){ clearForm(); showSection('inventory');}); document.getElementById('clearSearchBtn').addEventListener('click',function(){ document.getElementById('searchInput').value=''; renderInventory();}); document.getElementById('sortSelect').addEventListener('change',function(){ renderInventory();}); document.getElementById('exportReportBtn').addEventListener('click',exportCSV); document.getElementById('addUserBtn').addEventListener('click',addUser); document.getElementById('processMultiSaleBtn').addEventListener('click',processMultiSale); document.getElementById('clearCartBtn').addEventListener('click',clearCart); document.getElementById('confirmRestockBtn').addEventListener('click',confirmRestock); document.getElementById('closeRestockModal').addEventListener('click',function(){ document.getElementById('restockModal').classList.add('hidden');}); document.getElementById('restockModal').addEventListener('click',function(e){ if(e.target===this) this.classList.add('hidden');}); document.getElementById('receiptModal').addEventListener('click',function(e){ if(e.target===this) closeReceipt();});
+window.addToCartById=addToCartById; window.updateCartQty=updateCartQty; window.removeFromCart=removeFromCart; window.openRestockModal=openRestockModal; window.editDrug=editDrug; window.setPriceTier=setPriceTier; window.closeReceipt=closeReceipt; window.toggleUser=toggleUser; window.deleteUser=deleteUser; window.updatePetroleumPrice=updatePetroleumPrice; window.showSection=showSection;
+loadAllData(); loadRememberedLogin();
+var isAdminCheck = true;
+if(isAdminCheck){
+  document.getElementById('resetDrugsButton').addEventListener('click',function(){ google.script.run.resetData({resetDrugs:true}); });
+  document.getElementById('resetUsersButton').addEventListener('click',function(){ google.script.run.resetData({resetUsers:true}); });
+  document.getElementById('resetActivityButton').addEventListener('click',function(){ google.script.run.resetData({resetActivity:true}); });
+} else {
+  document.getElementById('resetDrugsButton').style.display='none'; document.getElementById('resetUsersButton').style.display='none'; document.getElementById('resetActivityButton').style.display='none';
 }
-function loadAllData() {
-  try {
-    var d = localStorage.getItem('pmc_drugs');
-    var l = localStorage.getItem('pmc_log');
-    drugs       = d ? JSON.parse(d) : JSON.parse(JSON.stringify(DEFAULT_DRUGS));
-    activityLog = l ? JSON.parse(l) : [];
-  } catch(e) {
-    drugs       = JSON.parse(JSON.stringify(DEFAULT_DRUGS));
-    activityLog = [];
-  }
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function(data) {
-        if (data && data.users && data.users.length > 0) {
-          users = data.users;
-          try { localStorage.setItem('pmc_users', JSON.stringify(users)); } catch(e){}
-        } else { _loadUsersFromLocal(); }
-        if (data && data.drugs && data.drugs.length > 0) {
-          drugs = data.drugs;
-          try { localStorage.setItem('pmc_drugs', JSON.stringify(drugs)); } catch(e){}
-          updateStats();
-        }
-        if (data && data.activity) { activityLog = data.activity; }
-        renderRecentLog();
-      })
-      .withFailureHandler(function(err) {
-        console.warn('Server load failed, using local:', err);
-        _loadUsersFromLocal();
-      })
-      .getAllData();
-  } else {
-    _loadUsersFromLocal();
-  }
-}
-
-function _loadUsersFromLocal() {
-  try {
-    var u = localStorage.getItem('pmc_users');
-    users = u ? JSON.parse(u) : JSON.parse(JSON.stringify(DEFAULT_USERS));
-  } catch(e) {
-    users = JSON.parse(JSON.stringify(DEFAULT_USERS));
-  }
-  if (!users.find(function(x){ return x.username === 'admin'; })) {
-    users.unshift(DEFAULT_USERS[0]);
-  }
-}
-
-
-// ==================== LOGIN ====================
-function attemptLogin() {
-  var uname = document.getElementById('loginUsername').value.trim();
-  var pwd   = document.getElementById('loginPassword').value;
-  if (!uname || !pwd) { showLoginError('Please enter username and password'); return; }
-  var btn = document.getElementById('doLoginBtn');
-  btn.innerText = '⏳ Signing in...'; btn.disabled = true;
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function(result) {
-        btn.innerText = '🔐 Sign In'; btn.disabled = false;
-        if (result && result.success) { _completeLogin(result.user); }
-        else { showLoginError(result.error || 'Invalid username or password'); }
-      })
-      .withFailureHandler(function(err) {
-        btn.innerText = '🔐 Sign In'; btn.disabled = false;
-        console.warn('Server login failed, trying local:', err);
-        _localLogin(uname, pwd);
-      })
-      .validateLogin(uname, pwd);
-  } else {
-    btn.innerText = '🔐 Sign In'; btn.disabled = false;
-    _localLogin(uname, pwd);
-  }
-}
-
-function _localLogin(uname, pwd) {
-  var user = users.find(function(u){
-    return u.username === uname && u.password === pwd &&
-           (u.enabled === true || u.enabled === 'true' || u.enabled === 'TRUE');
-  });
-  if (user) { _completeLogin(user); }
-  else { showLoginError('Invalid username or password'); }
-}
-
-function _completeLogin(user) {
-  currentUser = user;
-  if (document.getElementById('rememberMe').checked) {
-    localStorage.setItem('pmc_ru', user.username);
-  } else {
-    localStorage.removeItem('pmc_ru');
-    localStorage.removeItem('pmc_rp');
-  }
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('appContainer').classList.remove('hidden');
-  document.getElementById('userNameDisplay').innerText = user.name;
-  document.getElementById('userRoleBadge').innerText   = user.role.toUpperCase();
-  document.getElementById('roleDisplay').innerHTML     =
-    'Logged in as <span class="text-sky-300 font-medium">' + user.role + '</span>';
-  buildNav(); setupLiveSearch(); updateStats(); renderRecentLog();
-  addLog(user.name + ' logged in');
-}
-
-function showLoginError(msg) {
-  var e = document.getElementById('loginError');
-  e.innerHTML = '❌ ' + msg;
-  e.classList.remove('hidden');
-  document.getElementById('loginPassword').value = '';
-  setTimeout(function(){ e.classList.add('hidden'); }, 3000);
-}
-function logout() {
-  addLog((currentUser ? currentUser.name : 'User') + ' logged out');
-  currentUser = null; uploadPortalsReady = false; legacyUploadReady = false;
-  cartItems = []; currentPriceTier = 'general';
-  document.getElementById('loginScreen').classList.remove('hidden');
-  document.getElementById('appContainer').classList.add('hidden');
-  document.getElementById('loginPassword').value = '';
-}
-function loadRememberedLogin() {
-  var ru = localStorage.getItem('pmc_ru'), rp = localStorage.getItem('pmc_rp');
-  if (ru && rp) {
-    document.getElementById('loginUsername').value = ru;
-    document.getElementById('loginPassword').value = rp;
-    document.getElementById('rememberMe').checked  = true;
-  }
-}
-
-// ==================== NAVIGATION ====================
-function buildNav() {
-  var nav = document.getElementById('navContainer'); if (!nav) return;
-  var p = perms[currentUser.role];
-  var items = [{id:'dashboard', label:'📊 Dashboard'}];
-  if (p.inventory) items.push({id:'inventory', label:'📦 Inventory'});
-  if (p.add)       items.push({id:'add',       label:'➕ Add Drug'});
-  if (p.reports)   items.push({id:'reports',   label:'📈 Reports'});
-  if (p.upload)    items.push({id:'uploads',   label:'📂 Uploads'});
-  if (p.admin)     items.push({id:'admin',     label:'👑 Admin'});
-  nav.innerHTML = items.map(function(i){
-    return '<button data-nav="'+i.id+'" class="px-4 py-2 rounded-full text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 transition">'+i.label+'</button>';
-  }).join('');
-  document.querySelectorAll('[data-nav]').forEach(function(btn){
-    btn.addEventListener('click', function(){ showSection(btn.dataset.nav); });
-  });
-  showSection('dashboard');
-}
-window.showSection = function(section) {
-  document.querySelectorAll('.section').forEach(function(s){ s.classList.add('hidden'); });
-  var el = document.getElementById(section + '-section');
-  if (el) el.classList.remove('hidden');
-  document.querySelectorAll('[data-nav]').forEach(function(b){
-    b.className = b.dataset.nav === section
-      ? 'px-4 py-2 rounded-full text-sm font-semibold bg-sky-500 text-white transition'
-      : 'px-4 py-2 rounded-full text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 transition';
-  });
-  if (section === 'inventory') { renderInventory(); renderCart(); }
-  if (section === 'dashboard') updateStats();
-  if (section === 'reports')   updateStats();
-  if (section === 'add')       document.getElementById('formTitle').innerText = document.getElementById('editId').value ? '✏️ Edit Drug' : '➕ Add New Drug';
-  if (section === 'uploads')   { renderPetroleumPriceTable(); if (!uploadPortalsReady) { setupUploadPortals(); uploadPortalsReady = true; } }
-  if (section === 'admin' && currentUser && currentUser.role === 'admin') { renderUserList(); if (!legacyUploadReady) { setupLegacyUpload(); legacyUploadReady = true; } }
-};
-
-// ==================== STATS & CHARTS ====================
-function renderTopSelling() {
-  var sorted = drugs.slice().sort(function(a,b){ return (b.soldTotal||0)-(a.soldTotal||0); }).slice(0,5);
-  var c = document.getElementById('topSellingList'); if (!c) return;
-  c.innerHTML = sorted.length
-    ? sorted.map(function(d,i){
-        var medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
-        return '<div class="flex justify-between py-1.5 border-b border-white/5">'+
-          '<span>'+medals[i]+' '+esc(d.name)+'</span>'+
-          '<span class="text-emerald-400 font-medium">'+(d.soldTotal||0)+' units</span></div>';
-      }).join('')
-    : '<div class="text-zinc-500 italic">No sales yet</div>';
-}
-function updateCharts() {
-  var lm = {};
-  drugs.forEach(function(d){ var l = d.location || 'Other'; lm[l] = (lm[l]||0) + d.stock * d.generalPrice; });
-  var c1 = document.getElementById('locationChart');
-  if (c1) {
-    if (locationChart) locationChart.destroy();
-    locationChart = new Chart(c1.getContext('2d'), {
-      type:'bar',
-      data:{labels:Object.keys(lm), datasets:[{label:'Value (₵)', data:Object.values(lm).map(function(v){ return parseFloat(v.toFixed(2)); }), backgroundColor:'#0ea5e9', borderRadius:6}]},
-      options:{responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:function(v){ return '₵'+v; }}}}}
-    });
-  }
-  var low = drugs.filter(function(d){ return d.stock <= d.minBal; }).slice(0,6);
-  var c2 = document.getElementById('lowStockChart');
-  if (c2) {
-    if (lowStockChart) lowStockChart.destroy();
-    lowStockChart = new Chart(c2.getContext('2d'), {
-      type:'bar',
-      data:{
-        labels: low.map(function(d){ return d.name.length > 10 ? d.name.slice(0,9)+'..' : d.name; }),
-        datasets:[
-          {label:'Stock',   data:low.map(function(d){ return d.stock; }),  backgroundColor:'#f59e0b', borderRadius:4},
-          {label:'Min Bal', data:low.map(function(d){ return d.minBal; }), backgroundColor:'#ef4444', borderRadius:4}
-        ]
-      },
-      options:{responsive:true, plugins:{legend:{labels:{color:'#ccc',font:{size:11}}}}}
-    });
-  }
-}
-function updateStats() {
-  document.getElementById('stat-total').innerText = drugs.length;
-  var val = drugs.reduce(function(s,d){ return s + d.stock * d.generalPrice; }, 0);
-  document.getElementById('stat-value').innerHTML = '₵' + val.toFixed(2);
-  document.getElementById('stat-low').innerText   = drugs.filter(function(d){ return d.stock <= d.minBal; }).length;
-  document.getElementById('stat-sold').innerText  = drugs.reduce(function(s,d){ return s + (d.soldTotal||0); }, 0);
-  var lw = document.getElementById('lowStockList');
-  if (lw) {
-    var li = drugs.filter(function(d){ return d.stock <= d.minBal; });
-    lw.innerHTML = li.length
-      ? li.map(function(d){
-          return '<div class="flex justify-between border-b border-white/10 py-2 items-center">'+
-            '<span>'+esc(d.name)+' <span class="text-xs text-zinc-500">'+esc(d.strength||'')+'</span></span>'+
-            '<span class="text-amber-400 font-bold">'+Math.floor(d.stock)+' / '+d.minBal+'</span></div>';
-        }).join('')
-      : '<div class="text-emerald-400 py-2">✅ All stock levels are healthy</div>';
-  }
-  var locMap = {};
-  drugs.forEach(function(d){ var l = d.location || 'Other'; locMap[l] = (locMap[l]||0) + d.stock * d.generalPrice; });
-  var ld = document.getElementById('locationValue');
-  if (ld) ld.innerHTML = Object.keys(locMap).map(function(k){
-    return '<div class="flex justify-between border-b border-white/5 py-1.5"><span class="text-zinc-300">'+esc(k)+'</span><span class="font-medium text-sky-300">₵'+locMap[k].toFixed(2)+'</span></div>';
-  }).join('');
-  renderTopSelling();
-  updateCharts();
-}
-
-// ==================== PRICE TIER ====================
-function setPriceTier(tier) {
-  currentPriceTier = tier;
-  var gBtn = document.getElementById('tierGeneral'), pBtn = document.getElementById('tierPetroleum');
-  gBtn.className = tier === 'general'
-    ? 'px-5 py-2 rounded-full font-semibold transition bg-sky-500 text-white shadow shadow-sky-500/20'
-    : 'px-5 py-2 rounded-full font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600';
-  pBtn.className = tier === 'petroleum'
-    ? 'px-5 py-2 rounded-full font-semibold transition bg-sky-500 text-white shadow shadow-sky-500/20'
-    : 'px-5 py-2 rounded-full font-semibold transition bg-zinc-700 text-zinc-300 hover:bg-zinc-600';
-  document.getElementById('cartPriceLabel').innerText  = tier === 'general' ? 'General Public' : 'Petroleum Commission';
-  document.getElementById('priceHeader').innerHTML     = tier === 'general' ? 'General Price (₵)' : 'Petroleum Price (₵)';
-  cartItems.forEach(function(item){
-    var drug = drugs.find(function(d){ return d.id == item.id; });
-    if (drug) item.price = getCurrentPrice(drug);
-  });
-  renderInventory();
-  renderCart();
-}
-
-// ==================== CART ====================
-function renderCart() {
-  var c = document.getElementById('selectedDrugsContainer'); if (!c) return;
-  if (!cartItems.length) {
-    c.innerHTML = '<div class="text-zinc-500 text-sm italic py-2">No items in cart. Click ➕ Cart on any drug below.</div>';
-    document.getElementById('cartTotalItems').innerText = '0';
-    document.getElementById('cartTotalAmount').innerHTML = '₵0.00';
-    return;
-  }
-  c.innerHTML = cartItems.map(function(item){
-    return '<div class="cart-item">'+
-      '<span class="font-medium text-sm">'+esc(item.name)+'</span>'+
-      (item.strength ? '<span class="text-xs text-zinc-400">'+esc(item.strength)+'</span>' : '')+
-      '<span class="text-emerald-300 text-sm">₵'+item.price.toFixed(2)+'</span>'+
-      '<input type="number" value="'+item.qty+'" min="1" class="cart-qty-input" onchange="updateCartQty('+item.id+',this.value)">'+
-      '<span class="text-emerald-200 text-xs font-medium">= ₵'+(item.price*item.qty).toFixed(2)+'</span>'+
-      '<button onclick="removeFromCart('+item.id+')" class="text-red-400 hover:text-red-300 font-bold text-lg leading-none">✕</button>'+
-      '</div>';
-  }).join('');
-  document.getElementById('cartTotalItems').innerText = cartItems.reduce(function(s,i){ return s + i.qty; }, 0);
-  document.getElementById('cartTotalAmount').innerHTML = '₵' + cartItems.reduce(function(s,i){ return s + (i.price * i.qty); }, 0).toFixed(2);
-}
-function updateCartQty(id, v) {
-  var q = parseInt(v); if (isNaN(q) || q < 1) q = 1;
-  var item = cartItems.find(function(i){ return i.id == id; });
-  if (item) { item.qty = q; renderCart(); }
-}
-function addToCart(drug) {
-  var price = getCurrentPrice(drug);
-  var ex = cartItems.find(function(i){ return i.id == drug.id; });
-  if (ex) ex.qty++;
-  else cartItems.push({id:drug.id, name:drug.name, strength:drug.strength, price:price, qty:1});
-  renderCart();
-}
-function removeFromCart(id) { cartItems = cartItems.filter(function(i){ return i.id != id; }); renderCart(); }
-function clearCart() { cartItems = []; renderCart(); }
-
-// ==================== SALE + RECEIPT ====================
-function processMultiSale() {
-  if (!cartItems.length) { toast('No items in cart', 'warn'); return; }
-  var errors = [], soldItems = [], receiptItems = [], total = 0;
-  cartItems.forEach(function(item){
-    var drug = drugs.find(function(d){ return d.id == item.id; });
-    if (!drug) { errors.push(item.name + ': not found'); return; }
-    if (drug.stock < item.qty) { errors.push(item.name + ': only ' + drug.stock + ' in stock'); return; }
-    var priceUsed = getCurrentPrice(drug);
-    drug.stock -= item.qty;
-    drug.soldTotal = (drug.soldTotal||0) + item.qty;
-    var subtotal = priceUsed * item.qty; total += subtotal;
-    soldItems.push(item.qty + 'x ' + item.name);
-    receiptItems.push({name:item.name, strength:item.strength, qty:item.qty, price:priceUsed, subtotal:subtotal});
-  });
-  if (soldItems.length > 0) {
-    addLog('SALE: ' + soldItems.join(', ') + ' — Total: ₵' + total.toFixed(2) + ' (' + (currentPriceTier==='general'?'General':'Petroleum') + ')');
-    renderInventory(); updateStats(); saveAllData();
-    showReceipt(receiptItems, total);
-  }
-  if (errors.length > 0) { toast('Errors: ' + errors.join('; '), 'error'); }
-  clearCart();
-}
-function showReceipt(items, total) {
-  var tierName = currentPriceTier === 'general' ? 'General Public' : 'Petroleum Commission';
-  var h = '<div class="text-center border-b border-gray-200 pb-3 mb-3">'+
-    '<h2 class="text-lg font-bold">PSALMIST MEDICAL CENTRE</h2>'+
-    '<p class="text-xs text-gray-500">'+new Date().toLocaleString()+'</p>'+
-    '<p class="text-xs">Price Tier: <strong>'+tierName+'</strong></p>'+
-    '<p class="text-xs">Cashier: '+esc(currentUser ? currentUser.name : 'Staff')+'</p></div>'+
-    '<table class="w-full text-xs"><thead><tr class="border-b border-gray-200">'+
-    '<th class="text-left pb-1">Item</th><th class="text-center pb-1">Qty</th><th class="text-right pb-1">Price</th><th class="text-right pb-1">Subtotal</th>'+
-    '</tr></thead><tbody>';
-  items.forEach(function(i){
-    h += '<tr><td class="py-1">'+esc(i.name)+(i.strength?' ('+esc(i.strength)+')':'')+'</td>'+
-      '<td class="text-center">'+i.qty+'</td>'+
-      '<td class="text-right">₵'+parseFloat(i.price).toFixed(2)+'</td>'+
-      '<td class="text-right">₵'+parseFloat(i.subtotal).toFixed(2)+'</td></tr>';
-  });
-  h += '</tbody><tfoot><tr class="border-t-2 border-gray-300"><td colspan="3" class="pt-2 font-bold text-sm">TOTAL</td>'+
-    '<td class="text-right font-bold pt-2 text-sm">₵'+total.toFixed(2)+'</td></tr></tfoot></table>'+
-    '<div class="text-center text-xs text-gray-400 mt-4 border-t border-gray-200 pt-3">Thank you for your patronage! 🙏</div>';
-  document.getElementById('receiptContent').innerHTML = h;
-  document.getElementById('receiptModal').classList.remove('hidden');
-}
-function closeReceipt() { document.getElementById('receiptModal').classList.add('hidden'); }
-
-// ==================== INVENTORY RENDER ====================
-function renderInventory() {
-  if (!currentUser || !perms[currentUser.role].inventory) {
-    document.getElementById('inventory-tbody').innerHTML =
-      '<tr><td colspan="7" class="p-8 text-center text-zinc-500">🔒 Access Denied</td></tr>'; return;
-  }
-  var q = (document.getElementById('searchInput') ? document.getElementById('searchInput').value : '').toLowerCase().trim();
-  var filtered = drugs.filter(function(d){
-    return d.name.toLowerCase().includes(q) ||
-           (d.strength||'').toLowerCase().includes(q) ||
-           (d.location||'').toLowerCase().includes(q) ||
-           (d.whenTaken||'').toLowerCase().includes(q);
-  });
-  var sort = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'name';
-  if (sort === 'stock-asc')  filtered.sort(function(a,b){ return a.stock - b.stock; });
- else if (sort === 'price-asc') filtered.sort(function(a,b){ return getCurrentPrice(a) - getCurrentPrice(b); });
-  else filtered.sort(function(a,b){ return a.name.localeCompare(b.name); });
-
-  var canSell = perms[currentUser.role].sell;
-  var canEdit = perms[currentUser.role].edit;
-
-  document.getElementById('inventory-tbody').innerHTML = filtered.length
-    ? filtered.map(function(d){
-        var isLow = d.stock <= d.minBal;
-        return '<tr class="border-t border-white/5 hover:bg-white/5 transition">'+
-          '<td class="p-3 font-medium">'+esc(d.name)+'</td>'+
-          '<td class="p-3 text-zinc-400">'+esc(d.strength||'—')+'</td>'+
-          '<td class="p-3 text-right font-medium text-emerald-300">₵'+getCurrentPrice(d).toFixed(2)+'</td>'+
-          '<td class="p-3 text-center '+(isLow ? 'text-amber-400 font-bold' : 'text-white')+'">'+
-            Math.floor(d.stock)+(isLow ? ' ⚠️' : '')+'</td>'+
-          '<td class="p-3 text-center text-zinc-400">'+d.minBal+'</td>'+
-          '<td class="p-3 text-zinc-400">'+esc(d.location||'—')+'</td>'+
-          '<td class="p-3"><div class="flex gap-1.5 justify-center flex-wrap">'+
-            (canSell && d.stock > 0
-              ? '<button onclick="addToCartById('+d.id+')" class="bg-emerald-500/80 hover:bg-emerald-600 px-3 py-1.5 rounded-full text-xs text-white transition">➕ Cart</button>'
-              : (canSell ? '<span class="text-xs text-red-400 px-2">Out of stock</span>' : ''))+
-            (canEdit
-              ? '<button onclick="openRestockModal('+d.id+')" class="bg-amber-500/80 hover:bg-amber-600 px-3 py-1.5 rounded-full text-xs text-white transition">📦 Restock</button>'+
-                '<button onclick="editDrug('+d.id+')" class="bg-sky-500/80 hover:bg-sky-600 px-3 py-1.5 rounded-full text-xs text-white transition">✏️ Edit</button>'
-              : '')+
-          '</div></td>'+
-          '</tr>';
-      }).join('')
-    : '<tr><td colspan="7" class="p-10 text-center text-zinc-500 italic">No drugs found matching your search</td></tr>';
-
-  var rs = document.getElementById('searchResultCount');
-  if (rs) rs.innerHTML = q
-    ? '🔍 Found <strong>'+filtered.length+'</strong> result(s) for "'+esc(q)+'"'
-    : '📦 Showing all <strong>'+filtered.length+'</strong> drugs';
-  var xi = document.getElementById('searchClearIcon');
-  if (xi) xi.classList.toggle('hidden', !q.length);
-}
-
-// ==================== PETROLEUM PRICE TABLE ====================
-function renderPetroleumPriceTable() {
-  var tbody = document.getElementById('petroleumPriceTable'); if (!tbody) return;
-  tbody.innerHTML = drugs.map(function(d){
-    return '<tr class="border-t border-white/10 hover:bg-white/5 transition">'+
-      '<td class="p-3 font-medium">'+esc(d.name)+'</td>'+
-      '<td class="p-3 text-zinc-400">'+esc(d.strength||'—')+'</td>'+
-      '<td class="p-3 text-right text-emerald-300">₵'+parseFloat(d.generalPrice).toFixed(2)+'</td>'+
-      '<td class="p-3 text-right">'+
-        '<input type="number" step="0.01" min="0" id="petroPrice_'+d.id+'" value="'+
-        parseFloat(d.petroleumPrice||d.generalPrice).toFixed(2)+
-        '" class="bg-zinc-800 border border-zinc-600 rounded-xl px-3 py-1 w-28 text-right text-white outline-none focus:border-amber-400 transition">'+
-      '</td>'+
-      '<td class="p-3 text-center">'+
-        '<button onclick="updatePetroleumPrice('+d.id+')" class="bg-amber-500/80 hover:bg-amber-500 px-3 py-1 rounded-full text-xs text-white transition">Update</button>'+
-      '</td>'+
-      '</tr>';
-  }).join('');
-}
-function updatePetroleumPrice(id) {
-  var drug = drugs.find(function(d){ return d.id == id; }); if (!drug) return;
-  var newPrice = parseFloat(document.getElementById('petroPrice_'+id).value);
-  if (isNaN(newPrice) || newPrice < 0) newPrice = drug.generalPrice;
-  drug.petroleumPrice = newPrice;
-  saveAllData();
-  addLog('Updated Petroleum price for '+drug.name+': ₵'+newPrice.toFixed(2));
-  toast('✅ Petroleum price updated for '+drug.name, 'success');
-  renderPetroleumPriceTable();
-  renderInventory();
-}
-
-// ==================== DRUG CRUD ====================
-function addToCartById(id) {
-  var drug = drugs.find(function(d){ return d.id == id; });
-  if (drug && drug.stock > 0) { addToCart(drug); toast('Added '+drug.name+' to cart'); }
-  else toast('Out of stock', 'warn');
-}
-function openRestockModal(id) {
-  if (!perms[currentUser.role].edit) return;
-  window.restockTargetId = id;
-  var drug = drugs.find(function(d){ return d.id == id; });
-  document.getElementById('restockDrugTitle').innerText = 'Restock: ' + drug.name + ' (' + (drug.strength||'') + ')';
-  document.getElementById('restockQtyInput').value = 10;
-  document.getElementById('restockModal').classList.remove('hidden');
-  setTimeout(function(){ document.getElementById('restockQtyInput').select(); }, 100);
-}
-function confirmRestock() {
-  var drug = drugs.find(function(d){ return d.id == window.restockTargetId; }); if (!drug) return;
-  var qty = parseInt(document.getElementById('restockQtyInput').value);
-  if (isNaN(qty) || qty < 1) { toast('Enter a valid quantity', 'warn'); return; }
-  drug.stock += qty;
-  addLog('Restocked +'+qty+' × '+drug.name+' (new stock: '+drug.stock+')');
-  toast('✅ Added '+qty+' units to '+drug.name);
-  renderInventory(); updateStats(); saveAllData();
-  document.getElementById('restockModal').classList.add('hidden');
-}
-function editDrug(id) {
-  if (!perms[currentUser.role].edit) return;
-  var d = drugs.find(function(x){ return x.id == id; }); if (!d) return;
-  document.getElementById('editId').value        = d.id;
-  document.getElementById('drugName').value      = d.name;
-  document.getElementById('strength').value      = d.strength || '';
-  document.getElementById('cost').value          = d.cost;
-  document.getElementById('generalPrice').value  = d.generalPrice;
-  document.getElementById('petroleumPrice').value= d.petroleumPrice || d.generalPrice;
-  document.getElementById('stock').value         = d.stock;
-  document.getElementById('minBal').value        = d.minBal;
-  document.getElementById('location').value      = d.location || '';
-  document.getElementById('whenTaken').value     = d.whenTaken || '';
-  showSection('add');
-}
-function saveDrug(e) {
-  e.preventDefault();
-  if (!perms[currentUser.role].add) { toast('Permission denied', 'error'); return; }
-  var id   = parseInt(document.getElementById('editId').value);
-  var name = document.getElementById('drugName').value.trim();
-  if (!name) { toast('Drug name is required', 'warn'); return; }
-  var gp   = parseFloat(document.getElementById('generalPrice').value) || 0;
-  var drug = {
-    id:             id || Date.now(),
-    name:           name,
-    strength:       document.getElementById('strength').value.trim(),
-    cost:           parseFloat(document.getElementById('cost').value) || 0,
-    generalPrice:   gp,
-    petroleumPrice: parseFloat(document.getElementById('petroleumPrice').value) || gp,
-    stock:          parseInt(document.getElementById('stock').value) || 0,
-    minBal:         parseInt(document.getElementById('minBal').value) || 5,
-    location:       document.getElementById('location').value.trim(),
-    whenTaken:      document.getElementById('whenTaken').value.trim(),
-    soldTotal:      0
-  };
-  var idx = drugs.findIndex(function(d){ return d.id == id; });
-  if (id && idx >= 0) {
-    drug.soldTotal = drugs[idx].soldTotal || 0;
-    drugs[idx] = drug;
-    addLog('Updated drug: ' + name);
-    toast('✅ Drug updated successfully');
-  } else {
-    drugs.push(drug);
-    addLog('Added new drug: ' + name);
-    toast('✅ Drug added successfully');
-  }
-  renderInventory(); updateStats(); saveAllData();
-  clearForm(); showSection('inventory');
-}
-function clearForm() {
-  ['editId','drugName','strength','cost','generalPrice','petroleumPrice','stock','location','whenTaken']
-    .forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('minBal').value = '10';
-}
-
-// ==================== LIVE SEARCH ====================
-function setupLiveSearch() {
-  var si = document.getElementById('searchInput'); if (!si) return;
-  si.addEventListener('input', function(){
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(function(){ renderInventory(); }, 150);
-  });
-  var xi = document.getElementById('searchClearIcon');
-  if (xi) xi.addEventListener('click', function(){
-    document.getElementById('searchInput').value = '';
-    renderInventory();
-    document.getElementById('searchInput').focus();
-  });
-}
-
-// ==================== EXPORT CSV ====================
-function exportCSV() {
-  var rows = [["ID","Name","Strength","Cost","GeneralPrice","PetroleumPrice","Stock","MinBal","Location","WhenTaken","SoldTotal"]];
-  drugs.forEach(function(d){
-    rows.push([d.id, d.name, d.strength||'', d.cost, d.generalPrice,
-      d.petroleumPrice||d.generalPrice, d.stock, d.minBal,
-      d.location||'', d.whenTaken||'', d.soldTotal||0]);
-  });
-  var blob = new Blob([rows.map(function(r){
-    return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(',');
-  }).join('\n')], {type:'text/csv'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'psalmist_inventory_' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
-  addLog('Inventory CSV exported by ' + currentUser.name);
-  toast('✅ CSV exported');
-}
-
-// ==================== USER MANAGEMENT ====================
-function renderUserList() {
-  var c = document.getElementById('userListContainer'); if (!c) return;
-  c.innerHTML = users.map(function(u){
-    var isAdmin = u.username === 'admin';
-    return '<div class="flex justify-between items-center bg-zinc-800 p-3 rounded-2xl gap-3">'+
-      '<div class="flex items-center gap-3">'+
-        '<div class="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold">'+
-          u.name.charAt(0).toUpperCase()+'</div>'+
-        '<div>'+
-          '<span class="font-medium">'+esc(u.username)+'</span>'+
-          '<span class="text-xs text-zinc-400 ml-2">('+u.role+')</span>'+
-          '<span class="text-xs ml-2 '+(u.enabled ? 'text-emerald-400' : 'text-red-400')+'">'+
-            (u.enabled ? '● Active' : '● Disabled')+'</span>'+
-        '</div>'+
-      '</div>'+
-      '<div class="flex gap-2">'+
-        (!isAdmin
-          ? '<button onclick="toggleUser('+u.id+')" class="px-3 py-1 rounded-full text-xs font-medium '+
-              (u.enabled ? 'bg-red-500/30 text-red-300 hover:bg-red-500/50' : 'bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/50')+
-              ' transition">'+(u.enabled ? 'Disable' : 'Enable')+'</button>'+
-            '<button onclick="deleteUser('+u.id+')" class="px-3 py-1 bg-red-500/40 hover:bg-red-500/60 text-red-200 rounded-full text-xs transition">Delete</button>'
-          : '<span class="text-xs text-zinc-500 italic px-2">Protected</span>')+
-      '</div></div>';
-  }).join('');
-}
-function addUser() {
-  var uname = document.getElementById('newUsername').value.trim();
-  var role  = document.getElementById('newRole').value;
-  var pwd   = document.getElementById('newPassword').value.trim();
-  if (!uname) { toast('Enter a username', 'warn'); return; }
-  if (!pwd)   { toast('Enter a password', 'warn'); return; }
-  if (users.find(function(u){ return u.username === uname; })) {
-    toast('Username already exists', 'error'); return;
-  }
-
-  var btn = document.getElementById('addUserBtn');
-  btn.disabled = true; btn.innerText = '⏳ Saving...';
-
-  var newUser = {
-    id: Date.now(),
-    username: uname,
-    password: pwd,
-    role:     role,
-    name:     uname,
-    enabled:  true
-  };
-
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    // ── Save directly to sheet, confirmed by server response ──
-    google.script.run
-      .withSuccessHandler(function(result) {
-        btn.disabled = false; btn.innerText = '➕ Add User';
-        if (result && result.success) {
-          users.push(newUser);
-          renderUserList();
-          addLog('New user added: ' + uname + ' (' + role + ')');
-          toast('✅ User "' + uname + '" saved to server — visible on all browsers');
-          document.getElementById('newUsername').value = '';
-          document.getElementById('newPassword').value = '';
-        } else {
-          toast('❌ ' + (result.error || 'Failed to save user'), 'error');
-        }
-      })
-      .withFailureHandler(function(err) {
-        btn.disabled = false; btn.innerText = '➕ Add User';
-        toast('❌ Server error: ' + err.message, 'error');
-        console.error('addUserToSheet failed:', err);
-      })
-      .addUserToSheet(newUser);
-  } else {
-    // Offline fallback
-    users.push(newUser);
-    saveAllData();
-    renderUserList();
-    addLog('New user added: ' + uname + ' (' + role + ')');
-    toast('✅ User "' + uname + '" created (local only)');
-    document.getElementById('newUsername').value = '';
-    document.getElementById('newPassword').value = '';
-    btn.disabled = false; btn.innerText = '➕ Add User';
-  }
-}
-function toggleUser(id) {
-  var u = users.find(function(x){ return x.id == id; });
-  if (u && u.username !== 'admin') {
-    u.enabled = !u.enabled;
-    saveAllData();  // ← syncs to server
-    renderUserList();
-    addLog((u.enabled ? 'Enabled' : 'Disabled') + ' user: ' + u.username);
-    toast((u.enabled ? '✅ Enabled' : '🚫 Disabled') + ': ' + u.username);
-  } else toast('Cannot modify admin account', 'error');
-}
-function deleteUser(id) {
-  var u = users.find(function(x){ return x.id == id; });
-  if (u && u.username !== 'admin') {
-    if (!confirm('Delete user "' + u.username + '"? This cannot be undone.')) return;
-    users = users.filter(function(x){ return x.id != id; });
-    saveAllData();  // ← syncs to server
-    renderUserList();
-    addLog('Deleted user: ' + u.username);
-    toast('🗑️ User deleted');
-  } else toast('Cannot delete admin account', 'error');
-}
-
-// ==================== FILE UPLOAD HELPERS ====================
-function readFileAsWorkbook(file, callback) {
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var data = new Uint8Array(e.target.result);
-    var wb   = XLSX.read(data, {type:'array'});
-    var ws   = wb.Sheets[wb.SheetNames[0]];
-    callback(XLSX.utils.sheet_to_json(ws, {header:1, defval:''}));
-  };
-  reader.readAsArrayBuffer(file);
-}
-function findCol(hdr, keywords) {
-  for (var k = 0; k < keywords.length; k++) {
-    var idx = hdr.findIndex(function(h){ return h && h.toString().toLowerCase().includes(keywords[k]); });
-    if (idx >= 0) return idx;
-  }
-  return -1;
-}
-
-// ==================== GENERAL UPLOAD ====================
-function setupGeneralUpload() {
-  var zone = document.getElementById('generalUploadZone');
-  var fi   = document.getElementById('generalFileInput');
-  if (!zone || !fi) return;
-  zone.addEventListener('click', function(){ fi.click(); });
-  document.getElementById('generalBrowseBtn').addEventListener('click', function(e){ e.stopPropagation(); fi.click(); });
-  zone.addEventListener('dragover',  function(e){ e.preventDefault(); zone.classList.add('drag-active'); });
-  zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-active'); });
-  zone.addEventListener('drop', function(e){
-    e.preventDefault(); zone.classList.remove('drag-active');
-    if (e.dataTransfer.files[0]) handleGeneralFile(e.dataTransfer.files[0]);
-  });
-  fi.addEventListener('change', function(e){ if (e.target.files[0]) handleGeneralFile(e.target.files[0]); fi.value = ''; });
-  document.getElementById('generalConfirmBtn').addEventListener('click', confirmGeneralUpload);
-  document.getElementById('generalCancelBtn').addEventListener('click', function(){
-    document.getElementById('generalPreview').classList.add('hidden'); pendingGeneralData = [];
-  });
-}
-function handleGeneralFile(file) {
-  readFileAsWorkbook(file, function(json){ processGeneralFile(json); });
-}
-function processGeneralFile(data) {
-  pendingGeneralData = [];
-  var hdr = data[0] || [];
-  var ni  = findCol(hdr, ['name']);         if (ni < 0) ni = 0;
-  var si  = findCol(hdr, ['strength']);
-  var ci  = findCol(hdr, ['cost']);
-  var pi  = findCol(hdr, ['price','selling']);
-  var qi  = findCol(hdr, ['stock','qty','quantity']);
-  var mi  = findCol(hdr, ['min','minimum']);
-  var li  = findCol(hdr, ['location','shelf','store']);
-  var wi  = findCol(hdr, ['when','taken','dosage']);
-  for (var i = 1; i < Math.min(data.length, 500); i++) {
-    var row = data[i]; if (!row[ni]) continue;
-    pendingGeneralData.push({
-      name:       String(row[ni]).trim(),
-      strength:   si >= 0 ? String(row[si]||'').trim() : '',
-      cost:       ci >= 0 ? parseFloat(row[ci])||0 : 0,
-      generalPrice: pi >= 0 ? parseFloat(row[pi])||0 : 0,
-      stock:      qi >= 0 ? parseInt(row[qi])||0 : 0,
-      minBal:     mi >= 0 ? parseInt(row[mi])||10 : 10,
-      location:   li >= 0 ? String(row[li]||'').trim() : '',
-      whenTaken:  wi >= 0 ? String(row[wi]||'').trim() : ''
-    });
-  }
-  document.getElementById('generalPreviewTable').innerHTML =
-    '<div class="font-semibold mb-2 text-zinc-200">'+pendingGeneralData.length+' rows ready to import:</div>'+
-    pendingGeneralData.slice(0,5).map(function(d){
-      return '<div class="text-zinc-400 py-0.5">→ <strong>'+esc(d.name)+'</strong> '+esc(d.strength)+
-        ' | Price: ₵'+d.generalPrice+' | Stock: '+d.stock+'</div>';
-    }).join('')+
-    (pendingGeneralData.length > 5 ? '<div class="text-zinc-500 mt-1">...and '+(pendingGeneralData.length-5)+' more</div>' : '');
-  document.getElementById('generalPreview').classList.remove('hidden');
-}
-function confirmGeneralUpload() {
-  var btn = document.getElementById('generalConfirmBtn');
-  btn.disabled = true; btn.innerText = 'Importing...';
-  setTimeout(function(){
-    var added = 0, updated = 0;
-    pendingGeneralData.forEach(function(d){
-      if (!d.name) return;
-      var ex = drugs.find(function(x){
-        return x.name.toLowerCase() === d.name.toLowerCase() && (x.strength||'') === (d.strength||'');
-      });
-      if (ex) {
-       ex.cost         = d.cost         > 0 ? d.cost         : ex.cost;
-       ex.generalPrice = d.generalPrice > 0 ? d.generalPrice : ex.generalPrice;
-       ex.petroleumPrice = d.petroleumPrice > 0 ? d.petroleumPrice : ex. petroleumPrice;
-       ex.stock        = d.stock        > 0 ? d.stock        : ex.stock;
-       ex.minBal       = d.minBal       > 0 ? d.minBal       : ex.minBal;
-       ex.location     = d.location     || ex.location;
-       ex.whenTaken    = d.whenTaken    || ex.whenTaken;
-        updated++;
-      } else {
-        drugs.push({
-          id: Date.now() + Math.floor(Math.random()*9999),
-          name:d.name, strength:d.strength, cost:d.cost,
-          generalPrice:d.generalPrice, petroleumPrice:d.generalPrice,
-          stock:d.stock, minBal:d.minBal, location:d.location,
-          whenTaken:d.whenTaken, soldTotal:0
-        }); added++;
-      }
-    });
-
-    // ✅ Save locally AND push to Sheet
-    saveAllData();
-    renderInventory(); updateStats();
-    addLog('General upload: +'+added+' new, '+updated+' updated');
-
-    var resultMsg = '✅ Imported: '+added+' new, '+updated+' updated — syncing to server...';
-    toast(resultMsg);
-    document.getElementById('generalResult').innerHTML =
-      '<div class="text-emerald-300 mt-1">✅ Added '+added+' new drugs, updated '+updated+
-      ' — <span id="generalSyncStatus">⏳ Syncing to server...</span></div>';
-
-    // Show sync confirmation
-    syncToServer(function(ok){
-      var el = document.getElementById('generalSyncStatus');
-      if (el) el.innerHTML = ok ? '✅ Saved to server' : '⚠️ Local only (server sync failed)';
-    });
-
-    document.getElementById('generalPreview').classList.add('hidden');
-    pendingGeneralData = []; btn.disabled = false; btn.innerText = '✅ Import';
-    setTimeout(function(){ document.getElementById('generalResult').innerHTML = ''; }, 6000);
-  }, 100);
-}
-
-// ==================== PETROLEUM UPLOAD ====================
-function setupPetrolUpload() {
-  var zone = document.getElementById('petrolUploadZone');
-  var fi   = document.getElementById('petrolFileInput');
-  if (!zone || !fi) return;
-  zone.addEventListener('click', function(){ fi.click(); });
-  document.getElementById('petrolBrowseBtn').addEventListener('click', function(e){ e.stopPropagation(); fi.click(); });
-  zone.addEventListener('dragover',  function(e){ e.preventDefault(); zone.classList.add('drag-active'); });
-  zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-active'); });
-  zone.addEventListener('drop', function(e){
-    e.preventDefault(); zone.classList.remove('drag-active');
-    if (e.dataTransfer.files[0]) handlePetrolFile(e.dataTransfer.files[0]);
-  });
-  fi.addEventListener('change', function(e){ if (e.target.files[0]) handlePetrolFile(e.target.files[0]); fi.value = ''; });
-  document.getElementById('petrolConfirmBtn').addEventListener('click', confirmPetrolUpload);
-  document.getElementById('petrolCancelBtn').addEventListener('click', function(){
-    document.getElementById('petrolPreview').classList.add('hidden'); pendingPetrolData = [];
-  });
-}
-function handlePetrolFile(file) {
-  readFileAsWorkbook(file, function(json){ processPetrolFile(json); });
-}
-function processPetrolFile(data) {
-  pendingPetrolData = [];
-  var hdr = data[0] || [];
-  var ni  = findCol(hdr, ['name']); if (ni < 0) ni = 0;
-  var pi  = findCol(hdr, ['petroleum','price']); if (pi < 0) pi = 1;
-  for (var i = 1; i < Math.min(data.length, 500); i++) {
-    var row = data[i]; if (!row[ni]) continue;
-    pendingPetrolData.push({ name:String(row[ni]).trim(), price:parseFloat(row[pi])||0 });
-  }
-  document.getElementById('petrolPreviewTable').innerHTML =
-    '<div class="font-semibold mb-2 text-zinc-200">'+pendingPetrolData.length+' price updates ready:</div>'+
-    pendingPetrolData.slice(0,5).map(function(d){
-      return '<div class="text-zinc-400 py-0.5">→ <strong>'+esc(d.name)+'</strong> | Petroleum Price: ₵'+d.price+'</div>';
-    }).join('')+
-    (pendingPetrolData.length > 5 ? '<div class="text-zinc-500 mt-1">...and '+(pendingPetrolData.length-5)+' more</div>' : '');
-  document.getElementById('petrolPreview').classList.remove('hidden');
-}
-function confirmPetrolUpload() {
-  var btn = document.getElementById('petrolConfirmBtn');
-  btn.disabled = true; btn.innerText = 'Importing...';
-  setTimeout(function(){
-    var updated = 0, notFound = 0;
-    pendingPetrolData.forEach(function(d){
-      if (!d.name) return;
-      var drug = drugs.find(function(x){ return x.name.toLowerCase() === d.name.toLowerCase(); });
-      if (drug) { drug.petroleumPrice = d.price; updated++; }
-      else notFound++;
-    });
-
-    // ✅ Save locally AND push to Sheet
-    saveAllData();
-    renderInventory(); renderPetroleumPriceTable();
-    addLog('Petroleum upload: updated '+updated+' drugs'+(notFound?' ('+notFound+' not found)':''));
-    toast('✅ Updated '+updated+' petroleum prices');
-
-    document.getElementById('petrolResult').innerHTML =
-      '<div class="text-emerald-300 mt-1">✅ Updated '+updated+' drugs'+
-      (notFound?' | ⚠️ '+notFound+' not found':'')+
-      ' — <span id="petrolSyncStatus">⏳ Syncing...</span></div>';
-
-    syncToServer(function(ok){
-      var el = document.getElementById('petrolSyncStatus');
-      if (el) el.innerHTML = ok ? '✅ Saved to server' : '⚠️ Local only';
-    });
-
-    document.getElementById('petrolPreview').classList.add('hidden');
-    pendingPetrolData = []; btn.disabled = false; btn.innerText = '✅ Import Prices';
-    setTimeout(function(){ document.getElementById('petrolResult').innerHTML = ''; }, 6000);
-  }, 100);
-}
-
-// ==================== LEGACY BULK UPLOAD ====================
-function setupLegacyUpload() {
-  var zone = document.getElementById('uploadZone');
-  var fi   = document.getElementById('fileInput');
-  if (!zone || !fi) return;
-  zone.addEventListener('click', function(){ fi.click(); });
-  document.getElementById('browseBtn').addEventListener('click', function(e){ e.stopPropagation(); fi.click(); });
-  zone.addEventListener('dragover',  function(e){ e.preventDefault(); zone.classList.add('drag-active'); });
-  zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-active'); });
-  zone.addEventListener('drop', function(e){
-    e.preventDefault(); zone.classList.remove('drag-active');
-    if (e.dataTransfer.files[0]) handleLegacyFile(e.dataTransfer.files[0]);
-  });
-  fi.addEventListener('change', function(e){ if (e.target.files[0]) handleLegacyFile(e.target.files[0]); fi.value = ''; });
-  document.getElementById('confirmUploadBtn').addEventListener('click', confirmLegacyUpload);
-  document.getElementById('cancelUploadBtn').addEventListener('click', function(){
-    document.getElementById('uploadPreview').classList.add('hidden'); pendingLegacyData = [];
-  });
-}
-function handleLegacyFile(file) {
-  readFileAsWorkbook(file, function(json){ processLegacyFile(json); });
-}
-function processLegacyFile(data) {
-  pendingLegacyData = [];
-  var hdr = data[0] || [];
-  var ni  = findCol(hdr, ['name']);               if (ni < 0) ni = 0;
-  var si  = findCol(hdr, ['strength']);
-  var ci  = findCol(hdr, ['cost']);
-  var gi  = findCol(hdr, ['general']);
-  var pti = findCol(hdr, ['petroleum']);
-  var qi  = findCol(hdr, ['stock','qty']);
-  var mi  = findCol(hdr, ['min']);
-  var li  = findCol(hdr, ['location']);
-  var wi  = findCol(hdr, ['when','taken']);
-  for (var i = 1; i < Math.min(data.length, 500); i++) {
-    var row = data[i]; if (!row[ni]) continue;
-    var gp = gi >= 0 ? parseFloat(row[gi])||0 : 0;
-    pendingLegacyData.push({
-      name:           String(row[ni]).trim(),
-      strength:       si  >= 0 ? String(row[si]||'').trim() : '',
-      cost:           ci  >= 0 ? parseFloat(row[ci])||0 : 0,
-      generalPrice:   gp,
-      petroleumPrice: pti >= 0 ? parseFloat(row[pti])||gp : gp,
-      stock:          qi  >= 0 ? parseInt(row[qi])||0 : 0,
-      minBal:         mi  >= 0 ? parseInt(row[mi])||10 : 10,
-      location:       li  >= 0 ? String(row[li]||'').trim() : '',
-      whenTaken:      wi  >= 0 ? String(row[wi]||'').trim() : ''
-    });
-  }
-  document.getElementById('previewTable').innerHTML =
-    '<div class="font-semibold mb-2 text-zinc-200">'+pendingLegacyData.length+' rows ready:</div>'+
-    pendingLegacyData.slice(0,5).map(function(d){
-      return '<div class="text-zinc-400 py-0.5">→ <strong>'+esc(d.name)+'</strong> | General: ₵'+d.generalPrice+' | Petrol: ₵'+d.petroleumPrice+'</div>';
-    }).join('')+
-    (pendingLegacyData.length > 5 ? '<div class="text-zinc-500 mt-1">...and '+(pendingLegacyData.length-5)+' more</div>' : '');
-  document.getElementById('uploadPreview').classList.remove('hidden');
-}
-function confirmLegacyUpload() {
-  var btn = document.getElementById('confirmUploadBtn');
-  btn.disabled = true; btn.innerText = 'Importing...';
-  setTimeout(function(){
-    var added = 0, updated = 0;
-    pendingLegacyData.forEach(function(d){
-      if (!d.name) return;
-      var ex = drugs.find(function(x){
-        return x.name.toLowerCase() === d.name.toLowerCase() && (x.strength||'') === (d.strength||'');
-      });
-      if (ex) {
-        ex.cost           = d.cost           > 0 ? d.cost           : ex.cost;
-       ex.generalPrice   = d.generalPrice   > 0 ? d.generalPrice   : ex.generalPrice;
-       ex.petroleumPrice = d.petroleumPrice > 0 ? d.petroleumPrice : ex.petroleumPrice;
-       ex.stock          = d.stock          > 0 ? d.stock          : ex.stock;
-       ex.minBal         = d.minBal         > 0 ? d.minBal         : ex.minBal;
-       ex.location       = d.location       || ex.location;
-       ex.whenTaken      = d.whenTaken      || ex.whenTaken;
-        updated++;
-      } else {
-        drugs.push({
-          id: Date.now() + Math.floor(Math.random()*9999),
-          name:d.name, strength:d.strength, cost:d.cost,
-          generalPrice:d.generalPrice, petroleumPrice:d.petroleumPrice,
-          stock:d.stock, minBal:d.minBal, location:d.location,
-          whenTaken:d.whenTaken, soldTotal:0
-        }); added++;
-      }
-    });
-
-    // ✅ Save locally AND push to Sheet
-    saveAllData();
-    renderInventory(); updateStats();
-    addLog('Bulk import: +'+added+' new, '+updated+' updated');
-    toast('✅ Bulk import: '+added+' new, '+updated+' updated');
-
-    document.getElementById('uploadResult').innerHTML =
-      '<div class="text-emerald-300 mt-1">✅ Added '+added+' new, updated '+updated+
-      ' — <span id="legacySyncStatus">⏳ Syncing to server...</span></div>';
-
-    syncToServer(function(ok){
-      var el = document.getElementById('legacySyncStatus');
-      if (el) el.innerHTML = ok ? '✅ Saved to server' : '⚠️ Local only (server sync failed)';
-    });
-
-    document.getElementById('uploadPreview').classList.add('hidden');
-    pendingLegacyData = []; btn.disabled = false; btn.innerText = '✅ Import';
-    setTimeout(function(){ document.getElementById('uploadResult').innerHTML = ''; }, 6000);
-  }, 100);
-}
-
-function setupUploadPortals() { setupGeneralUpload(); setupPetrolUpload(); }
-
-// ==================== EVENT BINDINGS ====================
-document.getElementById('doLoginBtn').addEventListener('click', attemptLogin);
-document.getElementById('loginPassword').addEventListener('keypress', function(e){ if (e.key === 'Enter') attemptLogin(); });
-document.getElementById('loginUsername').addEventListener('keypress', function(e){ if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
-document.getElementById('togglePwd').addEventListener('click', function(){
-  var p = document.getElementById('loginPassword');
-  p.type = p.type === 'password' ? 'text' : 'password';
-  this.innerText = p.type === 'password' ? '👁' : '🙈';
-});
-document.getElementById('logoutBtn').addEventListener('click', logout);
-document.getElementById('drugForm').addEventListener('submit', saveDrug);
-document.getElementById('cancelFormBtn').addEventListener('click', function(){ clearForm(); showSection('inventory'); });
-document.getElementById('clearSearchBtn').addEventListener('click', function(){ document.getElementById('searchInput').value = ''; renderInventory(); });
-document.getElementById('sortSelect').addEventListener('change', function(){ renderInventory(); });
-document.getElementById('exportReportBtn').addEventListener('click', exportCSV);
-document.getElementById('addUserBtn').addEventListener('click', addUser);
-document.getElementById('processMultiSaleBtn').addEventListener('click', processMultiSale);
-document.getElementById('clearCartBtn').addEventListener('click', clearCart);
-document.getElementById('confirmRestockBtn').addEventListener('click', confirmRestock);
-document.getElementById('closeRestockModal').addEventListener('click', function(){ document.getElementById('restockModal').classList.add('hidden'); });
-document.getElementById('restockModal').addEventListener('click', function(e){ if (e.target === this) this.classList.add('hidden'); });
-document.getElementById('receiptModal').addEventListener('click', function(e){ if (e.target === this) closeReceipt(); });
-// ==================== SERVER SYNC ====================
-function syncToServer(callback) {
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function(result) {
-        if (result && result.success) {
-          if (callback) callback(true);
-        } else {
-          console.warn('syncToServer failed:', result);
-          if (callback) callback(false);
-        }
-      })
-      .withFailureHandler(function(err) {
-        console.warn('syncToServer error:', err);
-        if (callback) callback(false);
-      })
-      .syncAllData({
-        drugs:    drugs,
-        users:    users,
-        activity: activityLog
-      });
-  } else {
-    // Offline — just localStorage
-    saveAllData();
-    if (callback) callback(true);
-  }
-}
-// ==================== GLOBAL EXPORTS ====================
-window.addToCartById        = addToCartById;
-window.updateCartQty        = updateCartQty;
-window.removeFromCart       = removeFromCart;
-window.openRestockModal     = openRestockModal;
-window.editDrug             = editDrug;
-window.setPriceTier         = setPriceTier;
-window.closeReceipt         = closeReceipt;
-window.toggleUser           = toggleUser;
-window.deleteUser           = deleteUser;
-window.updatePetroleumPrice = updatePetroleumPrice;
-window.showSection          = showSection;
-
-// ==================== INIT ====================
-loadAllData();
-loadRememberedLogin();
-  // Assuming you have a way to identify admin users
-  var isAdmin = true; // Replace with your actual check
-
-  if (isAdmin) {
-    var resetOptions = {
-      resetDrugs: false,
-      resetUsers: false,
-      resetActivity: false
-    };
-
-    document.getElementById('resetDrugsButton').addEventListener('click', function() {
-      resetOptions.resetDrugs = true;
-      resetData();
-    });
-
-    document.getElementById('resetUsersButton').addEventListener('click', function() {
-      resetOptions.resetUsers = true;
-      resetData();
-    });
-
-    document.getElementById('resetActivityButton').addEventListener('click', function() {
-      resetOptions.resetActivity = true;
-      resetData();
-    });
-
-    function resetData() {
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result.success) {
-            alert('Data has been reset successfully!');
-          } else {
-            alert('Error resetting data: ' + result.error);
-          }
-        })
-        .withFailureHandler(function(error) {
-          alert('Error resetting data: ' + error);
-        })
-        .resetData(resetOptions);
-    }
-  } else {
-    document.getElementById('resetDrugsButton').style.display = 'none';
-    document.getElementById('resetUsersButton').style.display = 'none';
-    document.getElementById('resetActivityButton').style.display = 'none';
-  }
-
 </script>
 </body>
 </html>
