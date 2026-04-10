@@ -492,10 +492,31 @@ function renderRecentLog() {
 
 function saveAllData() { 
   try { 
+    // Always save to localStorage first
     localStorage.setItem('pmc_users', JSON.stringify(users)); 
     localStorage.setItem('pmc_drugs', JSON.stringify(drugs)); 
     localStorage.setItem('pmc_log', JSON.stringify(activityLog)); 
-  } catch(e){} 
+    
+    // Simple cross-tab sync using localStorage events
+    var currentTime = Date.now();
+    localStorage.setItem('pmc_last_sync', currentTime.toString());
+    
+    // Force storage event for other tabs by setting a dummy key
+    localStorage.setItem('pmc_trigger_sync', JSON.stringify({ 
+      timestamp: currentTime,
+      users: users, 
+      drugs: drugs, 
+      activity: activityLog 
+    }));
+    
+    // Clean up trigger
+    setTimeout(function() {
+      localStorage.removeItem('pmc_trigger_sync');
+    }, 100);
+    
+  } catch(e){ 
+    console.error('Save error:', e); 
+  } 
 }
 
 function loadAllData() { 
@@ -508,6 +529,52 @@ function loadAllData() {
     drugs=JSON.parse(JSON.stringify(DEFAULT_DRUGS)); 
     activityLog=[]; 
   } 
+  
+  if (typeof google!=='undefined' && google.script && google.script.run) { 
+    google.script.run.withSuccessHandler(function(data){ 
+      if(data&&data.users&&data.users.length) users=data.users; 
+      else _loadUsersFromLocal(); 
+      if(data&&data.drugs&&data.drugs.length) drugs=data.drugs; 
+      if(data&&data.activity) activityLog=data.activity; 
+      renderRecentLog(); 
+    }).withFailureHandler(function(){ 
+      _loadUsersFromLocal(); 
+    }).getAllData(); 
+  } else { 
+    _loadUsersFromLocal(); 
+    // Setup simple cross-tab sync
+    setupSimpleSync(); 
+  } 
+}
+
+function setupSimpleSync() { 
+  // Listen for sync events from other tabs
+  window.addEventListener('storage', function(e) { 
+    if (e.key === 'pmc_trigger_sync' && e.newValue) { 
+      try { 
+        var syncData = JSON.parse(e.newValue); 
+        if (syncData.users) users = syncData.users; 
+        if (syncData.drugs) drugs = syncData.drugs; 
+        if (syncData.activity) activityLog = syncData.activity; 
+        
+        // Update UI if logged in
+        if (currentUser) { 
+          updateStats(); 
+          renderRecentLog(); 
+          if (document.getElementById('inventory-section').classList.contains('hidden') === false) { 
+            renderInventory(); 
+          } 
+          if (document.getElementById('admin-section').classList.contains('hidden') === false) { 
+            renderUserList(); 
+          } 
+        } 
+        
+        toast('Data updated from another session', 'success'); 
+      } catch (err) { 
+        console.error('Sync error:', err); 
+      } 
+    } 
+  }); 
 }
 
 function _loadUsersFromLocal() { 
