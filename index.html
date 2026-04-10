@@ -497,10 +497,7 @@ function saveAllData() {
     localStorage.setItem('pmc_drugs', JSON.stringify(drugs)); 
     localStorage.setItem('pmc_log', JSON.stringify(activityLog)); 
     
-    // Try to save to server-side storage
-    saveToServer();
-    
-    // Simple cross-tab sync using localStorage events
+    // Cross-tab sync only; different browsers require file sharing/import
     var currentTime = Date.now();
     localStorage.setItem('pmc_last_sync', currentTime.toString());
     
@@ -522,69 +519,22 @@ function saveAllData() {
   } 
 }
 
-function saveToServer() {
-  // Enhanced cross-browser sync with automatic file download
+function exportSharedData() {
   var data = {
     users: users,
     drugs: drugs,
     activity: activityLog,
     timestamp: Date.now()
   };
-  
-  // Save to localStorage
-  localStorage.setItem('pmc_shared_data', JSON.stringify(data));
-  localStorage.setItem('pmc_shared_timestamp', data.timestamp.toString());
-  
-  // Auto-download data file for easy sharing
   var dataStr = JSON.stringify(data, null, 2);
   var blob = new Blob([dataStr], {type: 'application/json'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'pharmacy_data_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.download = 'psalmist_data_' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  
-  console.log('Data saved and downloaded for sharing');
-  toast('Data saved and downloaded for cross-browser sync', 'info');
-}
-
-function loadFromServer() {
-  // Load from shared localStorage
-  try {
-    var sharedData = localStorage.getItem('pmc_shared_data');
-    var sharedTimestamp = localStorage.getItem('pmc_shared_timestamp') || '0';
-    var localTimestamp = localStorage.getItem('pmc_local_timestamp') || '0';
-    
-    if (sharedData && parseInt(sharedTimestamp) > parseInt(localTimestamp)) {
-      var data = JSON.parse(sharedData);
-      
-      if (data.users) users = data.users;
-      if (data.drugs) drugs = data.drugs;
-      if (data.activity) activityLog = data.activity;
-      
-      localStorage.setItem('pmc_users', JSON.stringify(users));
-      localStorage.setItem('pmc_drugs', JSON.stringify(drugs));
-      localStorage.setItem('pmc_log', JSON.stringify(activityLog));
-      localStorage.setItem('pmc_local_timestamp', sharedTimestamp);
-      
-      if (currentUser) {
-        updateStats();
-        renderRecentLog();
-        if (document.getElementById('inventory-section').classList.contains('hidden') === false) {
-          renderInventory();
-        }
-        if (document.getElementById('admin-section').classList.contains('hidden') === false) {
-          renderUserList();
-        }
-      }
-      
-      console.log('Loaded data from shared storage');
-      toast('Data synchronized from another browser session', 'success');
-    }
-  } catch (error) {
-    console.log('Shared storage load failed:', error);
-  }
+  toast('Data exported for cross-browser sharing', 'info');
 }
 
 function setupFileImport() {
@@ -634,18 +584,23 @@ function setupFileImport() {
   };
   document.body.appendChild(fileInput);
   
-  // Add import button to admin section
+  // Add import and export buttons to admin section
   var importBtn = document.createElement('button');
   importBtn.className = 'bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-full text-white font-semibold transition';
   importBtn.textContent = 'Import Data File';
   importBtn.onclick = function() { fileInput.click(); };
   
-  // Add to admin section
+  var exportBtn = document.createElement('button');
+  exportBtn.className = 'bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-full text-white font-semibold transition';
+  exportBtn.textContent = 'Export Data File';
+  exportBtn.onclick = exportSharedData;
+  
   var adminSection = document.getElementById('admin-section');
   if (adminSection) {
     var resetDiv = adminSection.querySelector('.flex.gap-3');
     if (resetDiv) {
       resetDiv.appendChild(importBtn);
+      resetDiv.appendChild(exportBtn);
     }
   }
 }
@@ -675,11 +630,8 @@ function loadAllData() {
     _loadUsersFromLocal(); 
     // Setup simple cross-tab sync
     setupSimpleSync(); 
-    // Setup file import functionality
+    // Setup file import/export functionality for manual cross-browser sharing
     setupFileImport(); 
-    // Load from shared storage and start periodic sync
-    loadFromServer();
-    setInterval(loadFromServer, 10000); // Check every 10 seconds
   } 
 }
 
