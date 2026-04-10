@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Psalmist Medical Centre</title>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=Promise,fetch,Array.prototype.find,String.prototype.includes,NodeList.prototype.forEach"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -362,6 +363,61 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 
 <script>
 // ==================== DEFAULT DATA ====================
+// Polyfills for broader browser compatibility
+if (typeof NodeList !== 'undefined' && !NodeList.prototype.forEach) {
+  NodeList.prototype.forEach = Array.prototype.forEach;
+}
+if (!Array.prototype.find) {
+  Array.prototype.find = function(predicate) {
+    if (this == null) throw new TypeError('Array.prototype.find called on null or undefined');
+    if (typeof predicate !== 'function') throw new TypeError('predicate must be a function');
+    var list = Object(this);
+    var length = list.length >>> 0;
+    var thisArg = arguments.length > 1 ? arguments[1] : undefined;
+    for (var i = 0; i < length; i++) {
+      var value = list[i];
+      if (predicate.call(thisArg, value, i, list)) return value;
+    }
+    return undefined;
+  };
+}
+if (!String.prototype.includes) {
+  String.prototype.includes = function(search, start) {
+    if (typeof start !== 'number') start = 0;
+    if (start + search.length > this.length) return false;
+    return this.indexOf(search, start) !== -1;
+  };
+}
+if (!window.fetch) {
+  window.fetch = function(input, init) {
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      var method = (init && init.method) || 'GET';
+      xhr.open(method, input, true);
+      if (init && init.headers) {
+        for (var header in init.headers) {
+          if (Object.prototype.hasOwnProperty.call(init.headers, header)) {
+            xhr.setRequestHeader(header, init.headers[header]);
+          }
+        }
+      }
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        var response = {
+          ok: xhr.status >= 200 && xhr.status < 300,
+          status: xhr.status,
+          statusText: xhr.statusText,
+          text: function() { return Promise.resolve(xhr.responseText); },
+          json: function() { return Promise.resolve(JSON.parse(xhr.responseText)); }
+        };
+        if (response.ok) resolve(response);
+        else reject(response);
+      };
+      xhr.onerror = function() { reject(new TypeError('Network request failed')); };
+      xhr.send(init && init.body ? init.body : null);
+    });
+  };
+}
 var DEFAULT_USERS = [
   {id:1, username:'admin',      password:'admin123', role:'admin',      name:'Administrator', enabled:true},
   {id:2, username:'pharmacist', password:'pharm123', role:'pharmacist', name:'Pharmacist',    enabled:true},
