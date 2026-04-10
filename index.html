@@ -497,7 +497,7 @@ function saveAllData() {
     localStorage.setItem('pmc_drugs', JSON.stringify(drugs)); 
     localStorage.setItem('pmc_log', JSON.stringify(activityLog)); 
     
-    // Cross-tab sync only; different browsers require file sharing/import
+    // Cross-tab sync only; different browsers require backend or manual import/export
     var currentTime = Date.now();
     localStorage.setItem('pmc_last_sync', currentTime.toString());
     
@@ -513,10 +513,42 @@ function saveAllData() {
     setTimeout(function() {
       localStorage.removeItem('pmc_trigger_sync');
     }, 100);
+
+    saveToServer();
     
   } catch(e){ 
     console.error('Save error:', e); 
   } 
+}
+
+function saveToServer() {
+  if (window.location.protocol === 'file:') {
+    return;
+  }
+  var payload = {
+    users: users,
+    drugs: drugs,
+    activity: activityLog,
+    timestamp: Date.now()
+  };
+  fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(response) {
+    if (!response.ok) {
+      throw new Error('Server save failed');
+    }
+    return response.json();
+  }).then(function(result) {
+    if (result && result.success) {
+      console.log('Saved data to server');
+    } else {
+      console.warn('Server save response:', result);
+    }
+  }).catch(function(err) {
+    console.warn('Server save failed:', err);
+  });
 }
 
 function exportSharedData() {
@@ -616,6 +648,11 @@ function loadAllData() {
     activityLog=[]; 
   } 
   
+  function finishInit() {
+    setupSimpleSync(); 
+    setupFileImport(); 
+  }
+
   if (typeof google!=='undefined' && google.script && google.script.run) { 
     google.script.run.withSuccessHandler(function(data){ 
       if(data&&data.users&&data.users.length) users=data.users; 
@@ -623,15 +660,28 @@ function loadAllData() {
       if(data&&data.drugs&&data.drugs.length) drugs=data.drugs; 
       if(data&&data.activity) activityLog=data.activity; 
       renderRecentLog(); 
+      finishInit();
     }).withFailureHandler(function(){ 
       _loadUsersFromLocal(); 
+      finishInit();
     }).getAllData(); 
+  } else if (window.location.protocol !== 'file:') { 
+    fetch('/api/data').then(function(response) {
+      if (!response.ok) throw new Error('Server load failed');
+      return response.json();
+    }).then(function(data) {
+      if (data && data.users && data.users.length) users = data.users;
+      else _loadUsersFromLocal();
+      if (data && data.drugs && data.drugs.length) drugs = data.drugs;
+      if (data && data.activity) activityLog = data.activity;
+      renderRecentLog();
+    }).catch(function() {
+      _loadUsersFromLocal();
+    }).finally(function() {
+      finishInit();
+    });
   } else { 
-    _loadUsersFromLocal(); 
-    // Setup simple cross-tab sync
-    setupSimpleSync(); 
-    // Setup file import/export functionality for manual cross-browser sharing
-    setupFileImport(); 
+    finishInit(); 
   } 
 }
 
