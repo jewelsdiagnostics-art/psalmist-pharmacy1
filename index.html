@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <style>
 *{font-family:'Inter',system-ui,sans-serif}
 @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
@@ -282,6 +283,20 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
     <!-- ADMIN -->
     <div id="admin-section" class="section hidden">
       <div class="space-y-6">
+        <div class="bg-zinc-900 rounded-3xl p-8 border-2 border-dashed border-blue-500/30">
+          <h2 class="text-2xl font-bold mb-4 text-blue-400">Google Sheets Integration</h2>
+          <p class="text-zinc-400 text-sm mb-4">Connect to Google Sheets for real-time multi-user synchronization</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <input type="text" id="spreadsheetId" placeholder="Spreadsheet ID" class="bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition">
+            <input type="text" id="apiKey" placeholder="API Key" class="bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition">
+          </div>
+          <div class="flex gap-3">
+            <button id="connectGoogleSheets" class="bg-blue-500 hover:bg-blue-600 px-6 py-2.5 rounded-2xl text-white font-semibold transition shadow shadow-blue-500/20">Connect to Google Sheets</button>
+            <button id="testConnection" class="bg-zinc-700 hover:bg-zinc-600 px-6 py-2.5 rounded-2xl text-white font-semibold transition">Test Connection</button>
+          </div>
+          <div id="googleSheetsStatus" class="mt-4 text-sm"></div>
+        </div>
+        
         <div class="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
           <h2 class="text-2xl font-bold mb-6">User Management</h2>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
@@ -361,6 +376,21 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 </div>
 
 <script>
+// ==================== GOOGLE SHEETS CONFIGURATION ====================
+var GOOGLE_SHEETS_CONFIG = {
+  SPREADSHEET_ID: '1hg_N2it72QP11WTiVW6tJ5DUE1TqRqNrhUcUydJMyPs',
+  SHEET_GIDS: {
+    USERS: '0',    // First sheet (Users)
+    DRUGS: '123456789',  // Second sheet (Drugs) - will be updated
+    ACTIVITY: '987654321' // Third sheet (Activity) - will be updated
+  }
+};
+
+// CSV export URLs for public sheets
+function getSheetUrl(sheetName, gid) {
+  return `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+}
+
 // ==================== DEFAULT DATA ====================
 var DEFAULT_USERS = [
   {id:1, username:'admin',      password:'admin123', role:'admin',      name:'Administrator', enabled:true},
@@ -518,12 +548,11 @@ function saveAllData() {
     }, 100);
     
   } catch(e){ 
-    console.error('Save error:', e); 
+    console.error('Save error:', e);
   } 
 }
 
 function saveToServer() {
-  // Enhanced cross-browser sync with automatic file download
   var data = {
     users: users,
     drugs: drugs,
@@ -531,60 +560,63 @@ function saveToServer() {
     timestamp: Date.now()
   };
   
-  // Save to localStorage
-  localStorage.setItem('pmc_shared_data', JSON.stringify(data));
-  localStorage.setItem('pmc_shared_timestamp', data.timestamp.toString());
-  
-  // Auto-download data file for easy sharing
-  var dataStr = JSON.stringify(data, null, 2);
-  var blob = new Blob([dataStr], {type: 'application/json'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'pharmacy_data_' + new Date().toISOString().slice(0, 10) + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  console.log('Data saved and downloaded for sharing');
-  toast('Data saved and downloaded for cross-browser sync', 'info');
+  // Save to server
+  fetch('http://localhost:8000/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    console.log('Server save successful:', result);
+    toast('Data synchronized to server', 'success');
+  })
+  .catch(error => {
+    console.log('Server save failed:', error);
+    toast('Server not available - working offline', 'warn');
+  });
 }
 
 function loadFromServer() {
-  // Load from shared localStorage
-  try {
-    var sharedData = localStorage.getItem('pmc_shared_data');
-    var sharedTimestamp = localStorage.getItem('pmc_shared_timestamp') || '0';
-    var localTimestamp = localStorage.getItem('pmc_local_timestamp') || '0';
-    
-    if (sharedData && parseInt(sharedTimestamp) > parseInt(localTimestamp)) {
-      var data = JSON.parse(sharedData);
+  fetch('http://localhost:8000/load')
+  .then(response => response.json())
+  .then(data => {
+    if (data && data.users && data.drugs && data.activity) {
+      var serverTimestamp = data.timestamp || 0;
+      var localTimestamp = localStorage.getItem('pmc_server_timestamp') || 0;
       
-      if (data.users) users = data.users;
-      if (data.drugs) drugs = data.drugs;
-      if (data.activity) activityLog = data.activity;
-      
-      localStorage.setItem('pmc_users', JSON.stringify(users));
-      localStorage.setItem('pmc_drugs', JSON.stringify(drugs));
-      localStorage.setItem('pmc_log', JSON.stringify(activityLog));
-      localStorage.setItem('pmc_local_timestamp', sharedTimestamp);
-      
-      if (currentUser) {
-        updateStats();
-        renderRecentLog();
-        if (document.getElementById('inventory-section').classList.contains('hidden') === false) {
-          renderInventory();
+      if (serverTimestamp > parseInt(localTimestamp)) {
+        users = data.users;
+        drugs = data.drugs;
+        activityLog = data.activity;
+        
+        localStorage.setItem('pmc_users', JSON.stringify(users));
+        localStorage.setItem('pmc_drugs', JSON.stringify(drugs));
+        localStorage.setItem('pmc_log', JSON.stringify(activityLog));
+        localStorage.setItem('pmc_server_timestamp', serverTimestamp.toString());
+        
+        if (currentUser) {
+          updateStats();
+          renderRecentLog();
+          if (document.getElementById('inventory-section').classList.contains('hidden') === false) {
+            renderInventory();
+          }
+          if (document.getElementById('admin-section').classList.contains('hidden') === false) {
+            renderUserList();
+          }
         }
-        if (document.getElementById('admin-section').classList.contains('hidden') === false) {
-          renderUserList();
-        }
+        
+        console.log('Loaded data from server');
+        toast('Data synchronized from server', 'success');
       }
-      
-      console.log('Loaded data from shared storage');
-      toast('Data synchronized from another browser session', 'success');
     }
-  } catch (error) {
-    console.log('Shared storage load failed:', error);
-  }
+  })
+  .catch(error => {
+    console.log('Server load failed:', error);
+    // Don't show error toast on initial load
+  });
 }
 
 function setupFileImport() {
@@ -650,7 +682,28 @@ function setupFileImport() {
   }
 }
 
-function loadAllData() { 
+function loadAllData(){ 
+  // Try to initialize Google Sheets API
+  if (typeof gapi !== 'undefined') {
+    initGoogleSheets();
+  } else {
+    // Fallback to localStorage
+    loadFromLocalStorage();
+  }
+  
+  // Check for remembered user
+  var ru=localStorage.getItem('pmc_ru'); 
+  var rp=localStorage.getItem('pmc_rp'); 
+  if(ru){ 
+    document.getElementById('loginUsername').value=ru; 
+    if(rp){ 
+      document.getElementById('loginPassword').value=rp; 
+      document.getElementById('rememberMe').checked=true; 
+    } 
+  } 
+}
+
+function loadFromLocalStorage() {
   try { 
     var d=localStorage.getItem('pmc_drugs'); 
     var l=localStorage.getItem('pmc_log'); 
@@ -1685,6 +1738,62 @@ document.getElementById('receiptModal').addEventListener('click',function(e){ if
 
 // User management buttons
 document.getElementById('addUserBtn').addEventListener('click',addUser); 
+
+// Google Sheets integration buttons
+document.getElementById('connectGoogleSheets').addEventListener('click',function(){
+  var spreadsheetId = document.getElementById('spreadsheetId').value.trim();
+  var apiKey = document.getElementById('apiKey').value.trim();
+  
+  if (!spreadsheetId || !apiKey) {
+    toast('Please enter both Spreadsheet ID and API Key', 'warn');
+    return;
+  }
+  
+  // Update configuration
+  GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID = spreadsheetId;
+  GOOGLE_SHEETS_CONFIG.API_KEY = apiKey;
+  
+  // Save to localStorage
+  localStorage.setItem('google_sheets_config', JSON.stringify({
+    spreadsheetId: spreadsheetId,
+    apiKey: apiKey
+  }));
+  
+  // Initialize Google Sheets
+  if (typeof gapi !== 'undefined') {
+    initGoogleSheets();
+  } else {
+    toast('Google API not loaded - refresh the page', 'warn');
+  }
+});
+
+document.getElementById('testConnection').addEventListener('click',function(){
+  var spreadsheetId = document.getElementById('spreadsheetId').value.trim();
+  var apiKey = document.getElementById('apiKey').value.trim();
+  
+  if (!spreadsheetId || !apiKey) {
+    toast('Please enter both Spreadsheet ID and API Key', 'warn');
+    return;
+  }
+  
+  // Test connection
+  fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.spreadsheetId) {
+        toast('Connection successful! Sheet: ' + data.properties.title, 'success');
+        document.getElementById('googleSheetsStatus').innerHTML = 
+          '<div class="text-green-400">Connected to: ' + data.properties.title + '</div>';
+      } else {
+        toast('Connection failed - check credentials', 'error');
+      }
+    })
+    .catch(error => {
+      toast('Connection failed: ' + error.message, 'error');
+      document.getElementById('googleSheetsStatus').innerHTML = 
+        '<div class="text-red-400">Connection failed</div>';
+    });
+}); 
 
 // Reset buttons
 document.getElementById('resetDrugsButton').addEventListener('click',function(){ 
